@@ -6,18 +6,20 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+  <!-- Laid out to fit Chrome's 600px popup height without scrolling. -->
   <header class="topbar">
     <h1>Resume Matcher</h1>
     <button id="open-log" class="link">View log</button>
   </header>
 
   <!-- Job details (prefilled from the page, editable) -->
-  <section class="card job">
-    <label>Title <input id="job-title" type="text" placeholder="Job title"></label>
-    <label>Company <input id="job-company" type="text" placeholder="Company"></label>
-    <div class="source-row">
-      <span id="source-info" class="muted"></span>
-      <span class="spacer"></span>
+  <section class="job">
+    <div class="row">
+      <input id="job-title" class="grow" type="text" placeholder="Job title" title="Job title">
+      <input id="job-company" class="company" type="text" placeholder="Company" title="Company">
+    </div>
+    <div class="row source-row">
+      <span id="source-info" class="muted grow"></span>
       <button id="use-selection" class="small">Use selection</button>
       <button id="use-page" class="small">Use whole page</button>
     </div>
@@ -29,35 +31,32 @@
   <!-- Analysis results -->
   <section id="results" hidden>
     <div id="verdict" class="verdict">
-      <div id="verdict-label" class="verdict-label"></div>
-      <div id="verdict-reason" class="verdict-reason"></div>
-      <button id="tailor" class="primary" hidden>Copy prompt &amp; open Claude</button>
-      <div id="tailor-status" class="muted small-text"></div>
+      <div class="grow">
+        <div id="verdict-label" class="verdict-label"></div>
+        <div id="verdict-reason" class="verdict-reason"></div>
+      </div>
+      <button id="tailor" class="primary small" hidden>Copy prompt &amp; open Claude</button>
     </div>
+    <div id="tailor-status" class="muted small-text" hidden></div>
 
-    <h2>Fit scores</h2>
     <ul id="scores" class="scores"></ul>
 
-    <h2>Keywords for <span id="kw-resume"></span></h2>
-    <h3>Matched</h3>
-    <div id="matched" class="chips"></div>
-    <h3>Missing</h3>
-    <div id="missing" class="chips"></div>
+    <div class="kw-row"><span class="kw-label ok">Matched</span><div id="matched" class="chips"></div></div>
+    <div class="kw-row"><span class="kw-label bad">Missing</span><div id="missing" class="chips"></div></div>
 
-    <h2>Red flags</h2>
     <ul id="flags" class="flags"></ul>
 
-    <section class="card log-box">
-      <label>Resume used <select id="resume-used"></select></label>
+    <div class="row log-row">
+      <select id="resume-used" class="grow" title="Resume used"></select>
       <button id="log-btn" class="primary">Log this application</button>
-      <div id="log-status" class="muted small-text"></div>
-    </section>
+    </div>
+    <div id="log-status" class="muted small-text"></div>
   </section>
 
   <!-- Raw text: lets you fix a bad capture or paste text when the page can't be read -->
   <details id="text-box">
     <summary>Job text (edit or paste, then Re-analyze)</summary>
-    <textarea id="job-text" rows="8" placeholder="Paste the job description here"></textarea>
+    <textarea id="job-text" rows="6" placeholder="Paste the job description here"></textarea>
     <button id="reanalyze" class="small">Re-analyze</button>
   </details>
 

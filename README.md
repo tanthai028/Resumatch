@@ -48,12 +48,13 @@ Red flags:
 |---|---|
 | Years required ("3+ years", "3-6 years", "minimum one year", "four (4) years") | Flag if more than `flagYearsGap` above `experienceYears`; skip if more than `skipYearsGap` |
 | Senior title (`seniorityWords`) | Skip |
-| `trackedTools` in the required section that are not in `candidate.skills` | Flag; `skipMissingRequiredTools` or more means skip |
+| `coreTools` in the required section that are not in `candidate.skills` | Flag; `skipMissingRequiredTools` or more means skip |
+| `minorTools` (Excel, Visio, SharePoint...) in the required section that are not in your skills | Warning only |
 | `trackedSkills` (e.g. vendor management) asked for and not in your skills | Warning only |
 | Security clearance | Flag |
 | U.S. citizenship / ITAR | Shown as a plus |
 | Sponsorship, hybrid/on-site/remote, days per week | Info |
-| Location outside `nearbyAreas` | Warning |
+| Location outside `nearbyAreas` (a "Location:" line wins, else the first "City, ST") | Warning |
 
 The required section is found from headings such as "Qualifications", "Requirements" and
 "What you'll need". Lines under "Preferred" headings, or that say "preferred" or "a plus",

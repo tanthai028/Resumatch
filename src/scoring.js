@@ -65,14 +65,6 @@
     };
   }
 
-  // Short excerpt around a regex match, for showing context in red flags.
-  function snippet(text, index, length, pad) {
-    pad = pad || 50;
-    const start = Math.max(0, index - pad);
-    const end = Math.min(text.length, index + length + pad);
-    return (start > 0 ? '…' : '') + text.slice(start, end).replace(/\s+/g, ' ').trim() + (end < text.length ? '…' : '');
-  }
-
   // ---------------------------------------------------------------------------
   // Section detection: which lines are "required", "preferred", or other?
   // ---------------------------------------------------------------------------
@@ -171,7 +163,7 @@
   function keywordReport(normText, topResume, config, canon) {
     const skillSet = new Set(config.candidate.skills.map(canon));
     const lacking = new Set(
-      [...config.trackedTools, ...(config.trackedSkills || [])].map(canon).filter((t) => !skillSet.has(t))
+      [...config.coreTools, ...(config.minorTools || []), ...(config.trackedSkills || [])].map(canon).filter((t) => !skillSet.has(t))
     );
     const topSet = new Set(
       Object.keys(Object.assign({}, topResume.titleKeywords, topResume.bodyKeywords)).map(canon)
@@ -184,7 +176,8 @@
     const display = new Map();
     const add = (label) => { const c = canon(label); if (c && !display.has(c)) display.set(c, label); };
     config.candidate.skills.forEach(add);
-    config.trackedTools.forEach(add);
+    config.coreTools.forEach(add);
+    (config.minorTools || []).forEach(add);
     (config.trackedSkills || []).forEach(add);
     config.resumes.forEach((r) => {
       for (const [term, w] of Object.entries(Object.assign({}, r.titleKeywords, r.bodyKeywords))) if (w >= minWeight) add(term);
@@ -247,10 +240,47 @@
 
   const US_STATES = new Set('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '));
 
+  // Words that start a multi-word city name ("St. Petersburg", "San Diego") or end one ("Kansas City").
+  const CITY_PREFIX = /^(?:st\.?|saint|san|santa|los|las|new|fort|ft\.?|palm|port|el|la|north|south|east|west|lake|salt|grand|coral|cape|winter|pinellas|daytona|panama|key|bonita|delray|boca|pompano|plant)$/i;
+  const CITY_SUFFIX = /^(?:city|beach|park|springs|falls|heights|harbor|lakes?|rock|hills?|grove|island|gardens|bay|point|village)$/i;
+
+  // "Failure Analyst Phoenix" -> "Phoenix", "Saint Petersburg" stays whole.
+  function trimCity(words) {
+    let keep = 1;
+    while (keep < words.length && (CITY_PREFIX.test(words[words.length - keep - 1]) || CITY_SUFFIX.test(words[words.length - keep]))) keep++;
+    return words.slice(-keep).join(' ');
+  }
+
+  // Returns one "City, ST" string (or a raw "Location:" value), or null.
+  // Whole-page captures include "similar jobs" lists, so a labeled Location
+  // line wins, and otherwise only the first City, ST in the text is used.
+  function findLocation(original) {
+    const cityRe = /\b((?:[A-Z][a-zA-Z.]*\s){0,3}[A-Z][a-zA-Z.]+),\s*(Florida|[A-Z]{2})\b/g;
+    const firstCity = (s) => {
+      cityRe.lastIndex = 0;
+      let m;
+      while ((m = cityRe.exec(s))) {
+        if (m[2] === 'Florida' || US_STATES.has(m[2])) return trimCity(m[1].split(/\s+/)) + ', ' + m[2];
+      }
+      return null;
+    };
+    const lines = original.split(/\n/).map((l) => l.trim());
+    for (let i = 0; i < lines.length; i++) {
+      // "Location: X" or a bare "Locations" heading (not "Location flexibility is...").
+      const m = /^(?:job |work |primary )?locations?(?:\s*[:\-]\s*(.*)|\s*)$/i.exec(lines[i]);
+      if (!m) continue;
+      // Value on the same line, or on the next non-empty line ("Locations\nPhoenix, AZ").
+      let value = m[1] || '';
+      for (let j = i + 1; !value && j < lines.length && j <= i + 3; j++) value = lines[j];
+      if (value) return firstCity(value) || value.slice(0, 60);
+    }
+    return firstCity(original);
+  }
+
   // Each flag: { type, severity: 'flag' | 'warn' | 'info' | 'plus', text }
   function findRedFlags(job, normText, sections, config, canon) {
     const flags = [];
-    const facts = { yearsRequired: null, yearsGap: null, seniorTitle: null, missingRequiredTools: [], missingRequiredSkills: [] };
+    const facts = { yearsRequired: null, yearsGap: null, seniorTitle: null, missingRequiredTools: [], missingMinorTools: [], missingRequiredSkills: [] };
     const T = config.thresholds;
     const exp = config.candidate.experienceYears;
 
@@ -285,12 +315,19 @@
     const reqText = sections.lines.filter((l) => !l.preferred && (!sections.foundRequired || l.section === 'required')).map((l) => l.text).join('\n');
     const allNonPreferred = sections.lines.filter((l) => !l.preferred).map((l) => l.text).join('\n');
     const prefText = sections.lines.filter((l) => l.preferred).map((l) => l.text).join('\n');
-    const where = sections.foundRequired ? 'required qualifications' : 'posting (no clear requirements section found)';
+    const where = sections.foundRequired ? 'requirements' : 'posting (no requirements section found)';
     const preferredMissing = [];
-    for (const tool of config.trackedTools) {
+    for (const tool of config.coreTools) {
       const c = canon(tool);
       if (skillSet.has(c)) continue;
       if (countTerm(reqText, c) > 0) facts.missingRequiredTools.push(tool);
+      else if (countTerm(prefText, c) > 0) preferredMissing.push(tool);
+    }
+    // Minor tools (Excel, Visio, SharePoint...) are quick to learn: warn only.
+    for (const tool of config.minorTools || []) {
+      const c = canon(tool);
+      if (skillSet.has(c)) continue;
+      if (countTerm(reqText, c) > 0) facts.missingMinorTools.push(tool);
       else if (countTerm(prefText, c) > 0) preferredMissing.push(tool);
     }
     for (const skill of config.trackedSkills || []) {
@@ -303,6 +340,9 @@
     if (facts.missingRequiredTools.length) {
       flags.push({ type: 'tools', severity: 'flag', text: `Tools in ${where} you don't list: ${facts.missingRequiredTools.join(', ')}` });
     }
+    if (facts.missingMinorTools.length) {
+      flags.push({ type: 'minor-tools', severity: 'warn', text: `Minor tools you don't list (learnable): ${facts.missingMinorTools.join(', ')}` });
+    }
     if (facts.missingRequiredSkills.length) {
       flags.push({ type: 'skills', severity: 'warn', text: `Experience asked for that you don't list: ${facts.missingRequiredSkills.join(', ')}` });
     }
@@ -312,14 +352,14 @@
 
     // 4. Citizenship / clearance / sponsorship.
     const clearance = /\b(?:security clearance|secret clearance|top secret|ts\/sci|active clearance|clearance (?:is )?required|obtain (?:and maintain )?(?:a |an )?(?:security |government )?clearance|public trust)\b/.exec(normText);
-    if (clearance) flags.push({ type: 'clearance', severity: 'flag', text: 'Security clearance mentioned: ' + snippet(normText, clearance.index, clearance[0].length, 30) });
+    if (clearance) flags.push({ type: 'clearance', severity: 'flag', text: `Security clearance mentioned ("${clearance[0]}")` });
     const citizen = /\b(?:u\.?s\.? citizen(?:ship)?|united states citizen(?:ship)?|citizenship (?:is )?required|u\.?s\.? persons?|itar|export[\s-]controll?ed)\b/.exec(normText);
     if (citizen) {
       const sev = config.candidate.usCitizen ? 'plus' : 'flag';
-      flags.push({ type: 'citizenship', severity: sev, text: 'Citizenship requirement (you qualify as a U.S. citizen): ' + snippet(normText, citizen.index, citizen[0].length, 30) });
+      flags.push({ type: 'citizenship', severity: sev, text: config.candidate.usCitizen ? 'U.S. citizenship/ITAR requirement — you qualify' : 'U.S. citizenship required' });
     }
     const sponsor = /\b(?:sponsor(?:ship)?|visa|work authorization|authorized to work)\b/.exec(normText);
-    if (sponsor) flags.push({ type: 'sponsorship', severity: 'info', text: 'Mentions sponsorship/work authorization — not an issue for you: ' + snippet(normText, sponsor.index, sponsor[0].length, 30) });
+    if (sponsor) flags.push({ type: 'sponsorship', severity: 'info', text: 'Mentions sponsorship/work authorization — fine for you' });
 
     // 5. Work arrangement and location.
     const days = /\b(\d|one|two|three|four|five)(?:\s*\(\d\))?\s*days?\s*(?:a|per|\/|each|of the)?\s*week\b/.exec(normText);
@@ -330,24 +370,14 @@
     if (days) arrangement.push(`${toNum(days[1])} days/week mentioned`);
     if (arrangement.length) flags.push({ type: 'arrangement', severity: 'info', text: 'Work arrangement: ' + arrangement.join('; ') });
 
-    // Prefer "City, ST" matches; fall back to a "Location: ..." line.
-    const locations = new Set();
-    const original = String(job.text || '');
-    const cityRe = /\b([A-Z][a-zA-Z.]+(?:\s[A-Z][a-zA-Z.]+){0,2}),\s*(Florida|[A-Z]{2})\b/g;
-    let cm;
-    while ((cm = cityRe.exec(original)) && locations.size < 4) {
-      if (cm[2] === 'Florida' || US_STATES.has(cm[2])) locations.add(cm[0].trim());
-    }
-    const labeled = /\b(?:job )?locations?\s*[:\-]\s*([^\n]{2,60})/i.exec(original);
-    if (!locations.size && labeled) locations.add(labeled[1].trim());
-    if (locations.size) {
-      const list = [...locations];
+    const location = findLocation(String(job.text || ''));
+    if (location) {
       const near = config.candidate.nearbyAreas.map((a) => a.toLowerCase());
-      const anyLocal = list.some((l) => near.some((a) => l.toLowerCase().includes(a)));
+      const local = near.some((a) => location.toLowerCase().includes(a));
       flags.push({
         type: 'location',
-        severity: anyLocal ? 'info' : 'warn',
-        text: `Location: ${list.join(' | ')}` + (anyLocal ? '' : ` — not near ${config.candidate.location}`)
+        severity: local ? 'info' : 'warn',
+        text: `Location: ${location}` + (local ? '' : ` — not near ${config.candidate.location}`)
       });
     }
 

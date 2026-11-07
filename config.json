@@ -212,14 +212,17 @@
     "kpis": ["kpi", "key performance indicators"]
   },
 
-  "_trackedTools": "Tools that, if found in a required/minimum qualifications section and NOT in candidate.skills, are red flags that count toward 'Likely skip'.",
-  "trackedTools": [
-    "Splunk", "Dynatrace", "AppDynamics", "Datadog", "New Relic", "Excel", "ODI", "Ab Initio", "WebLogic",
+  "_coreTools": "Specialized tools. If found in a required/minimum qualifications section and NOT in candidate.skills, they are red flags that count toward 'Likely skip'. ('Oracle' is left out on purpose: Oracle-hosted career sites mention it on every page.)",
+  "coreTools": [
+    "Splunk", "Dynatrace", "AppDynamics", "Datadog", "New Relic", "ODI", "Ab Initio", "WebLogic",
     "WebSphere", "Informatica", "SSIS", "Talend", "Kubernetes", "Docker", "Azure", "GCP", "Salesforce", "SAP",
-    "Oracle", "Mainframe", "COBOL", "C++", "Ruby", "PHP", "Kotlin", "Swift", "Scala", "Spark", "Hadoop",
-    "Snowflake", "Databricks", "Kafka", "MongoDB", "Angular", "TypeScript", "Ansible", "Puppet", "Visio",
-    "SharePoint", "Workday", "UiPath", "Autosys", "Control-M", "Golang"
+    "Mainframe", "COBOL", "C++", "Ruby", "PHP", "Kotlin", "Swift", "Scala", "Spark", "Hadoop",
+    "Snowflake", "Databricks", "Kafka", "MongoDB", "Angular", "TypeScript", "Ansible", "Puppet",
+    "UiPath", "Autosys", "Control-M", "Golang"
   ],
+
+  "_minorTools": "Everyday/learnable tools. If required and NOT in candidate.skills they show an amber warning but do NOT count toward 'Likely skip'.",
+  "minorTools": ["Excel", "Visio", "SharePoint", "Workday", "Smartsheet", "Confluence", "PowerPoint", "Microsoft Teams"],
 
   "_trackedSkills": "Experience areas (not tools). Flagged when required but NOT in candidate.skills; they do NOT count toward 'Likely skip'.",
   "trackedSkills": [

@@ -85,10 +85,16 @@ function el(tag, attrs, text) {
   return e;
 }
 
-function renderChips(container, items) {
+// Shows the first `max` chips; the rest collapse into a "+N" chip (hover to see them).
+function renderChips(container, items, max) {
   container.replaceChildren();
   if (!items.length) container.append(el('span', { className: 'none' }, 'None'));
-  for (const item of items.slice(0, 30)) container.append(el('span', { className: 'chip' }, item));
+  for (const item of items.slice(0, max)) container.append(el('span', { className: 'chip' }, item));
+  if (items.length > max) {
+    const more = el('span', { className: 'chip more' }, `+${items.length - max}`);
+    more.title = items.slice(max).join(', ');
+    container.append(more);
+  }
 }
 
 function render() {
@@ -101,7 +107,7 @@ function render() {
   $('verdict-label').textContent = v.label;
   $('verdict-reason').textContent = v.reasons.join('; ');
   $('tailor').hidden = v.type !== 'tailor';
-  $('tailor-status').textContent = '';
+  $('tailor-status').hidden = true;
 
   // Scores (top pick highlighted; hover shows which keywords earned points)
   const list = $('scores');
@@ -113,14 +119,13 @@ function render() {
     const fill = el('div', { className: 'fill' });
     fill.style.width = s.score + '%';
     bar.append(fill);
-    li.append(el('span', {}, s.name), bar, el('span', { className: 'num' }, String(s.score)));
+    li.append(el('span', { className: 'name' }, s.name), bar, el('span', { className: 'num' }, String(s.score)));
     list.append(li);
   });
 
-  // Keywords for the top pick
-  $('kw-resume').textContent = result.top.name;
-  renderChips($('matched'), result.matched);
-  renderChips($('missing'), result.missing);
+  // Keywords for the top pick (capped so the popup doesn't need to scroll)
+  renderChips($('matched'), result.matched, 10);
+  renderChips($('missing'), result.missing, 8);
 
   // Red flags, most serious first
   const order = { flag: 0, warn: 1, plus: 2, info: 3 };
@@ -194,6 +199,7 @@ async function onTailor() {
   const prompt = ResumeScoring.buildClaudePrompt(result, jobText, config);
   await copyText(prompt);
   $('tailor-status').textContent = 'Prompt copied — paste it into Claude.';
+  $('tailor-status').hidden = false;
   // Opening a tab closes the popup, so copy first.
   chrome.tabs.create({ url: 'https://claude.ai/new' });
 }
