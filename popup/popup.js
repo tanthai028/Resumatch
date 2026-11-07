@@ -122,7 +122,7 @@ function setMatchedOpen(open) {
   const n = result ? result.matched.length : 0;
   $('matched').hidden = !open;
   $('matched-toggle').setAttribute('aria-expanded', String(open));
-  $('matched-toggle').textContent = `✓ ${n} matched keyword${n === 1 ? '' : 's'}`;
+  $('matched-toggle').textContent = `${n} matched keyword${n === 1 ? '' : 's'} · ${open ? 'hide' : 'show'}`;
 }
 
 function render() {
