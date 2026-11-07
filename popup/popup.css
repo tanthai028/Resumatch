@@ -8,6 +8,9 @@
   --muted: #666666;
   --rule: #e5e5e5;
   --ink: #111111;
+  --on-ink: #ffffff;
+  --on-mark: #111111; /* text on a highlighter mark, in both themes */
+  --hover: #f7f7f7;
   --field: #d4d4d4;
   --track: #eeeeee;
   --bar: #9a9a9a;
@@ -31,6 +34,30 @@
   /* 12px is the floor: smaller grey text was hard to read. */
   --fs-sm: 12px;
   --fs: 13px;
+}
+
+/* Dark mode follows the system setting. Marks stay solid marker colors
+   (a touch deeper) with dark text on them; --ink flips to light for rules
+   and primary buttons, with --on-ink as the text on top. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #161616;
+    --text: #ececec;
+    --muted: #a3a3a3;
+    --rule: #2c2c2c;
+    --ink: #ececec;
+    --on-ink: #111111;
+    --field: #4a4a4a;
+    --hover: #202020;
+    --track: #2a2a2a;
+    --bar: #6e6e6e;
+    --mark-green: #8fdc76;
+    --mark-yellow: #f2d635;
+    --mark-pink: #ff9fae;
+    --red: #ff7b6e;
+    --amber: #f2a65a;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -79,7 +106,7 @@ button {
   background: var(--bg); color: var(--text); padding: 0 var(--s3); height: 28px; white-space: nowrap;
 }
 button:hover { border-color: var(--ink); }
-button.primary { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+button.primary { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 600; }
 button.primary:hover { background: var(--mark-yellow); color: var(--ink); }
 button:disabled, button:disabled:hover { cursor: default; background: var(--track); border-color: var(--track); color: var(--muted); }
 button.link { border: none; background: none; color: var(--text); padding: 0; height: auto; text-decoration: underline; text-underline-offset: 2px; }
@@ -136,7 +163,7 @@ button.link:hover { background: var(--mark-yellow); }
 button.kw-label { display: inline-flex; align-items: center; gap: var(--s1); color: var(--muted); text-decoration: none; }
 /* Help mark: a small outlined circle, big enough to see and click. */
 button.kw-label .q { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid currentColor; border-radius: 50%; font-size: 10px; line-height: 1; }
-button.kw-label:hover .q, button.kw-label[aria-expanded="true"] .q { background: var(--ink); border-color: var(--ink); color: #fff; }
+button.kw-label:hover .q, button.kw-label[aria-expanded="true"] .q { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
 .chips { display: flex; flex-wrap: wrap; gap: var(--s1); flex: 1; min-width: 0; }
 /* Gaps: one straight row, right-aligned with the score numbers above.
    Chips that don't fit fold into "+N"; clicking it lets the row wrap. */
@@ -170,3 +197,7 @@ button.chip.more { height: 20px; padding: 0 6px; font-size: var(--fs-sm); color:
 /* Footer: where the text came from, plus a switch. */
 .footer { margin-top: var(--s3); font-size: var(--fs-sm); color: var(--muted); }
 .footer .link { margin-left: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
+
+/* Anything sitting on a highlighter mark keeps dark text, also in dark mode. */
+.verdict-label, .scores li.top.high .name, .scores li.top.medium .name, .scores li.top.low .name,
+.chip.core, .chip.soft, button.primary:hover, button.link:hover { color: var(--on-mark); }

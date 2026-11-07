@@ -6,6 +6,10 @@
   --muted: #666666;
   --rule: #e5e5e5;
   --ink: #111111;
+  --on-ink: #ffffff;
+  --on-mark: #111111; /* text on a highlighter mark, in both themes */
+  --hover: #f7f7f7;
+  --backdrop: rgba(0, 0, 0, .35);
   --field: #d4d4d4;
   --mark-yellow: #ffe74c;
   --mark-green: #a6eb8f;
@@ -13,6 +17,29 @@
   --red: #d92d20;
   --amber: #b54708;
   --display: Bahnschrift, "DIN Alternate", "Arial Narrow", system-ui, sans-serif;
+}
+
+/* Dark mode follows the system setting. Marks stay solid marker colors
+   (a touch deeper) with dark text on them; --ink flips to light for rules
+   and primary buttons, with --on-ink as the text on top. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #161616;
+    --text: #ececec;
+    --muted: #a3a3a3;
+    --rule: #2c2c2c;
+    --ink: #ececec;
+    --on-ink: #111111;
+    --field: #4a4a4a;
+    --hover: #202020;
+    --backdrop: rgba(0, 0, 0, .65);
+    --mark-green: #8fdc76;
+    --mark-yellow: #f2d635;
+    --mark-pink: #ff9fae;
+    --red: #ff7b6e;
+    --amber: #f2a65a;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -47,9 +74,9 @@ button.link.danger:hover { background: var(--mark-pink); }
 button.link:disabled { color: var(--field); cursor: default; background: none; }
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-.undo-bar { display: inline-flex; gap: 12px; margin: 4px 0 8px; padding: 6px 10px; background: var(--ink); color: #fff; font-size: 13px; }
-.undo-bar button.link { color: #fff; }
-.undo-bar button.link:hover { color: var(--ink); }
+.undo-bar { display: inline-flex; gap: 12px; margin: 4px 0 8px; padding: 6px 10px; background: var(--ink); color: var(--on-ink); font-size: 13px; }
+.undo-bar button.link { color: var(--on-ink); }
+.undo-bar button.link:hover { background: none; text-decoration: none; }
 
 /* Scrolls sideways only in very narrow windows. */
 .table-wrap { overflow-x: auto; }
@@ -80,10 +107,11 @@ tr:hover .remove, .remove:focus-visible { opacity: 1; }
 
 /* Rows open the detail dialog. Rejected rows fade back so active ones stand out. */
 tbody tr { cursor: pointer; }
-tbody tr:hover, tbody tr:focus-visible { background: #fafafa; }
+tbody tr:hover, tbody tr:focus-visible { background: var(--hover); }
 tbody tr:focus-visible { outline-offset: -2px; }
 tbody tr.closed td { color: var(--muted); }
-tbody tr.closed .match { opacity: .5; }
+/* Faded marks look muddy (worst in dark mode), so a closed row's match becomes an outline. */
+tbody tr.closed .match { background: none; box-shadow: inset 0 0 0 1px var(--field); color: var(--muted); }
 
 /* Status: plain words; only Interview and Offer get a mark. */
 td.status { white-space: nowrap; }
@@ -96,7 +124,7 @@ button.link.done { margin-left: 6px; font-size: 13px; }
 
 /* Detail dialog: one application's status, follow-up and notes. */
 .detail { width: min(520px, calc(100vw - 32px)); padding: 20px 24px 24px; border: 2px solid var(--ink); border-radius: 0; color: var(--text); background: var(--bg); }
-.detail::backdrop { background: rgba(0, 0, 0, .35); }
+.detail::backdrop { background: var(--backdrop); }
 .d-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
 .d-head h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; line-height: 1.3; }
 .d-head .muted { font-size: 13px; }
@@ -106,16 +134,20 @@ button.link.done { margin-left: 6px; font-size: 13px; }
 .segmented { display: flex; }
 .seg { font: inherit; font-size: 13px; padding: 5px 12px; border: 1px solid var(--field); background: var(--bg); color: var(--text); cursor: pointer; }
 .seg + .seg { border-left: none; }
-.seg:hover { background: #f5f5f5; }
-.seg[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+.seg:hover { background: var(--hover); }
+.seg[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); font-weight: 600; }
 .seg[aria-checked="true"].interview { background: var(--mark-yellow); border-color: var(--mark-yellow); color: var(--ink); }
 .seg[aria-checked="true"].offer { background: var(--mark-green); border-color: var(--mark-green); color: var(--ink); }
 
 .d-follow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; font-size: 13px; }
 
-.detail textarea { display: block; width: 100%; padding: 8px 10px; font: inherit; color: var(--text); border: 1px solid var(--field); border-radius: 0; resize: vertical; }
+.detail textarea { display: block; width: 100%; padding: 8px 10px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--field); border-radius: 0; resize: vertical; }
 .detail textarea:focus { outline: none; border-color: var(--ink); }
 .d-saved { min-height: 18px; margin-top: 4px; font-size: 12px; }
 .d-links { display: flex; gap: 16px; margin-top: 8px; font-size: 13px; }
 .d-links a { color: var(--text); text-underline-offset: 2px; text-decoration-color: var(--muted); }
 .d-links a:hover { background: var(--mark-yellow); }
+
+/* Anything sitting on a highlighter mark keeps dark text, also in dark mode. */
+button.link:hover, td a:hover, .match, .st.interview, .st.offer,
+.seg[aria-checked="true"].interview, .seg[aria-checked="true"].offer, .d-links a:hover { color: var(--on-mark); }
