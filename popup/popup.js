@@ -166,8 +166,9 @@ function render() {
   const serious = result.flags.filter((f) => (f.severity === 'flag' || f.severity === 'warn') && !inChips.has(f.type));
   [...serious].sort((a, b) => (a.severity === 'flag' ? 0 : 1) - (b.severity === 'flag' ? 0 : 1))
     .forEach((f) => flags.append(el('li', { className: f.severity }, f.text)));
-  const facts = result.flags.filter((f) => (f.severity === 'info' || f.severity === 'plus') && !inChips.has(f.type)).map((f) => f.text);
-  $('meta').textContent = (serious.length ? '' : 'No red flags · ') + facts.join(' · ');
+  // Grey line: only logistics you'd plan around (work arrangement, location).
+  const facts = result.flags.filter((f) => f.severity === 'info' && (f.type === 'arrangement' || f.type === 'location')).map((f) => f.text);
+  $('meta').textContent = facts.join(' · ');
 
   // Default "resume used" for the log
   const sel = $('resume-used');
@@ -282,7 +283,7 @@ async function init() {
   } catch (e) {
     // chrome:// pages, the Web Store, PDFs, etc. can't be scripted.
     page = { url: tab && tab.url, docTitle: tab && tab.title, selection: '', pageText: '' };
-    $('source-info').textContent = "Can't read this page. Paste the text below.";
+    $('source-info').textContent = "Can't read this page. Use Paste text below.";
     $('text-box').open = true;
   }
 
@@ -297,7 +298,7 @@ async function init() {
 
   $('use-page').addEventListener('click', () => {
     setSource('page');
-    analyzeText(page.pageText, 'Whole page can include unrelated text. Highlight the description for cleaner results.');
+    analyzeText(page.pageText, '');
   });
   $('use-selection').addEventListener('click', async () => {
     try { page = Object.assign(page, await grabPage(tab)); } catch (e) { /* keep old */ }
@@ -310,7 +311,7 @@ async function init() {
   });
   $('reanalyze').addEventListener('click', () => {
     setSource(null);
-    analyzeText($('job-text').value, 'Using edited text.');
+    analyzeText($('job-text').value, '');
   });
   $('job-title').addEventListener('change', () => { if (jobText) analyzeText(jobText); checkDuplicates(); });
   $('job-company').addEventListener('change', checkDuplicates);

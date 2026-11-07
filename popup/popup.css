@@ -58,6 +58,8 @@ input, select, textarea {
   border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
 }
 input.grow { flex: 3; }
+/* Long titles/companies end in "..." (Chrome applies this while the field isn't focused). */
+input[type="text"] { text-overflow: ellipsis; }
 input.company { flex: 2; min-width: 0; }
 textarea { display: block; width: 100%; height: auto; padding: var(--s1) var(--s2); resize: vertical; font-size: var(--fs-sm); margin: var(--s1) 0; }
 
@@ -137,6 +139,7 @@ button.matched-toggle { margin-top: var(--s2); font-size: var(--fs-sm); color: v
 .flags li.flag { background: var(--red-bg); border-color: var(--red); }
 .flags li.warn { background: var(--amber-bg); border-color: var(--amber); }
 .meta { margin-top: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
+.meta:empty { display: none; }
 
 .log-row { margin-top: var(--s3); }
 .log-label { font-size: var(--fs-sm); color: var(--muted); }
