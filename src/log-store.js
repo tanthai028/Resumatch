@@ -3,12 +3,18 @@
  * Used by both the popup ("Log this application") and the log page.
  *
  * Entry shape: { id, company, title, jobId, url, date, resume, resumeFile,
- *                verdict, score, match }   (match = "High" | "Medium" | "Low")
+ *                verdict, score, match, status, lastFollowUp, notes }
+ *   match  = "High" | "Medium" | "Low"
+ *   status = one of STATUSES (missing on old entries = "Applied")
+ *   lastFollowUp = ISO date of the last "I followed up" click, or missing
  */
 (function (root) {
   'use strict';
 
   const KEY = 'applications';
+  // Kept short on purpose; "ghosted" is just Applied with no reply.
+  const STATUSES = ['Applied', 'Interview', 'Offer', 'Rejected'];
+  const DAY = 24 * 60 * 60 * 1000;
 
   async function getLog() {
     const data = await chrome.storage.local.get(KEY);
@@ -26,6 +32,29 @@
     log.unshift(Object.assign({ id }, entry));
     await saveLog(log);
     return id;
+  }
+
+  // Merge fields into one entry (status, notes, follow-up date).
+  async function updateEntry(id, patch) {
+    const log = await getLog();
+    const e = log.find((x) => x.id === id);
+    if (!e) return;
+    Object.assign(e, patch);
+    await saveLog(log);
+  }
+
+  const statusOf = (e) => e.status || 'Applied';
+  const today = () => new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
+
+  // Whole days since an ISO date (local time).
+  function daysSince(iso, now) {
+    const d = new Date(iso + 'T00:00:00');
+    return isNaN(d) ? 0 : Math.floor(((now || new Date()) - d) / DAY);
+  }
+
+  // Still "Applied" and nothing heard for `days` since applying or the last follow-up.
+  function followUpDue(e, days, now) {
+    return statusOf(e) === 'Applied' && days > 0 && daysSince(e.lastFollowUp || e.date, now) >= days;
   }
 
   async function deleteEntry(id) {
@@ -60,7 +89,7 @@
   }
 
   function toCSV(log) {
-    const cols = ['date', 'company', 'title', 'jobId', 'url', 'resume', 'resumeFile', 'match', 'verdict'];
+    const cols = ['date', 'company', 'title', 'jobId', 'url', 'resume', 'resumeFile', 'match', 'verdict', 'status', 'lastFollowUp', 'notes'];
     const esc = (v) => {
       const s = v === undefined || v === null ? '' : String(v);
       return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -68,5 +97,8 @@
     return [cols.join(',')].concat(log.map((e) => cols.map((c) => esc(e[c])).join(','))).join('\r\n');
   }
 
-  root.LogStore = { getLog, saveLog, addEntry, deleteEntry, findDuplicates, normalizeUrl, toCSV };
+  root.LogStore = {
+    STATUSES, getLog, saveLog, addEntry, updateEntry, deleteEntry,
+    statusOf, today, daysSince, followUpDue, findDuplicates, normalizeUrl, toCSV
+  };
 })(typeof self !== 'undefined' ? self : this);

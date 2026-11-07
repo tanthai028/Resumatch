@@ -300,8 +300,7 @@ async function onLog() {
     logNote('You already logged this job. Click again to log it anyway.', false);
     return;
   }
-  const now = new Date();
-  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const date = LogStore.today();
   // The file to re-download later: the chosen resume, or the base of a tailored one.
   const used = $('resume-used').value;
   const base = config.resumes.find((r) => used === r.name || used === 'Tailored (based on ' + r.name + ')');
@@ -315,7 +314,8 @@ async function onLog() {
     resumeFile: base ? base.filename : '',
     verdict: result.verdict.label,
     score: result.top.score,
-    match: ResumeScoring.matchLevel(result.top.score, config)
+    match: ResumeScoring.matchLevel(result.top.score, config),
+    status: 'Applied'
   });
   confirmDuplicate = false;
   $('log-btn').textContent = 'Logged';

@@ -1,5 +1,6 @@
 /**
- * log.js — the application log page: filter, remove (with undo), clear all
+ * log.js — the application log page: filter, status, one-click follow-up,
+ * a detail dialog with notes (click a row), remove (with undo), clear all
  * (two-step, with undo) and CSV export.
  */
 'use strict';
@@ -12,6 +13,10 @@ let undoSnapshot = null;     // log as it was before the last remove / clear
 let undoTimer = null;
 let confirmClear = false;    // second click on "Clear all"
 const fileExists = new Map(); // resume filename -> Promise<boolean>
+let detailId = null;         // entry shown in the detail dialog
+let notesTimer = null;
+
+const followUpDays = () => (config && config.thresholds && config.thresholds.followUpDays) ?? 10;
 
 // Old entries (before match levels) only have a score; derive the level.
 function matchOf(e) {
@@ -92,9 +97,35 @@ function resumeCell(e) {
   return td;
 }
 
+// Status column: the status word, or a "Follow up" nudge with a one-click "Done".
+function statusCell(e) {
+  const td = cell('', 'status');
+  if (LogStore.followUpDue(e, followUpDays())) {
+    const days = LogStore.daysSince(e.lastFollowUp || e.date);
+    const due = document.createElement('span');
+    due.className = 'due';
+    due.textContent = 'Follow up';
+    due.title = `No reply for ${days} days since you ${e.lastFollowUp ? 'last followed up' : 'applied'}.`;
+    const done = document.createElement('button');
+    done.className = 'link done';
+    done.textContent = 'Done';
+    done.setAttribute('aria-label', `Mark ${e.title || 'application'} as followed up today`);
+    done.addEventListener('click', () => LogStore.updateEntry(e.id, { lastFollowUp: LogStore.today() }));
+    td.append(due, ' ', done);
+  } else {
+    const status = LogStore.statusOf(e);
+    const span = document.createElement('span');
+    span.className = 'st ' + status.toLowerCase();
+    span.textContent = status;
+    td.append(span);
+  }
+  return td;
+}
+
 function render() {
   const q = $('filter').value.trim().toLowerCase();
-  const shown = q ? log.filter((e) => [e.company, e.title, e.jobId, e.resume].join(' ').toLowerCase().includes(q)) : log;
+  const text = (e) => [e.company, e.title, e.jobId, e.resume, LogStore.statusOf(e), e.notes].join(' ').toLowerCase();
+  const shown = q ? log.filter((e) => text(e).includes(q)) : log;
 
   $('count').textContent = log.length === 1 ? '1 application' : `${log.length} applications`;
   $('empty').hidden = log.length > 0;
@@ -107,6 +138,12 @@ function render() {
   rows.replaceChildren();
   for (const e of shown) {
     const tr = document.createElement('tr');
+    tr.tabIndex = 0;
+    tr.title = 'Open status and notes';
+    if (LogStore.statusOf(e) === 'Rejected') tr.className = 'closed';
+    // Clicking a row (but not its links or buttons) opens the detail dialog.
+    tr.addEventListener('click', (ev) => { if (!ev.target.closest('a, button')) openDetail(e.id); });
+    tr.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && ev.target === tr) openDetail(e.id); });
 
     const match = matchOf(e);
     const badge = document.createElement('span');
@@ -126,6 +163,7 @@ function render() {
       cell(e.jobId, 'num'),
       resumeCell(e),
       cell(match ? badge : ''),
+      statusCell(e),
       cell(remove, 'actions')
     );
     rows.append(tr);
@@ -135,6 +173,61 @@ function render() {
 async function load() {
   log = await LogStore.getLog();
   render();
+  if (detailId) renderDetail(false);
+}
+
+// --- Detail dialog ------------------------------------------------------------
+
+function openDetail(id) {
+  detailId = id;
+  renderDetail(true);
+  $('detail').showModal();
+}
+
+// fillNotes is false on refreshes, so a save never overwrites what you're typing.
+function renderDetail(fillNotes) {
+  const e = log.find((x) => x.id === detailId);
+  if (!e) { $('detail').close(); return; }
+
+  $('d-title').textContent = e.title || 'Untitled role';
+  $('d-sub').textContent = [e.company, e.jobId && 'ID ' + e.jobId, 'Applied ' + prettyDate(e.date)].filter(Boolean).join(' · ');
+
+  const status = LogStore.statusOf(e);
+  const group = $('d-status');
+  group.replaceChildren(...LogStore.STATUSES.map((s) => {
+    const b = document.createElement('button');
+    b.textContent = s;
+    b.className = 'seg ' + s.toLowerCase();
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(s === status));
+    b.addEventListener('click', () => LogStore.updateEntry(e.id, { status: s }));
+    return b;
+  }));
+
+  const today = LogStore.today();
+  const days = LogStore.daysSince(e.date);
+  $('d-follow-text').textContent = e.lastFollowUp
+    ? `Last followed up ${e.lastFollowUp === today ? 'today' : prettyDate(e.lastFollowUp)}.`
+    : `No follow-up yet. Applied ${days === 0 ? 'today' : days === 1 ? '1 day ago' : days + ' days ago'}.`;
+  $('d-follow').hidden = e.lastFollowUp === today;
+
+  if (fillNotes) { $('d-notes').value = e.notes || ''; $('d-saved').textContent = ''; }
+
+  const links = $('d-links');
+  links.replaceChildren();
+  if (e.url) links.append(link(e.url, 'Open posting'));
+  const file = fileOf(e);
+  if (file) checkFile(file).then((ok) => { if (ok) links.append(link(chrome.runtime.getURL('resumes/' + file), /^Tailored\b/.test(e.resume || '') ? 'Base resume PDF' : 'Resume PDF')); });
+}
+
+// Notes save shortly after you stop typing, and right away when the dialog closes.
+function saveNotes() {
+  clearTimeout(notesTimer);
+  notesTimer = null;
+  const e = log.find((x) => x.id === detailId);
+  const notes = $('d-notes').value;
+  if (!e || (e.notes || '') === notes) return;
+  LogStore.updateEntry(e.id, { notes }).then(() => { $('d-saved').textContent = 'Saved'; });
 }
 
 // --- Undo -------------------------------------------------------------------
@@ -194,9 +287,19 @@ $('filter').addEventListener('input', render);
 $('export').addEventListener('click', exportCSV);
 $('clear').addEventListener('click', clearAll);
 $('undo').addEventListener('click', undo);
+$('d-close').addEventListener('click', () => $('detail').close());
+$('d-follow').addEventListener('click', () => LogStore.updateEntry(detailId, { lastFollowUp: LogStore.today() }));
+$('d-notes').addEventListener('input', () => {
+  $('d-saved').textContent = '';
+  clearTimeout(notesTimer);
+  notesTimer = setTimeout(saveNotes, 500);
+});
+// Clicking the dimmed backdrop closes the dialog, like Esc.
+$('detail').addEventListener('click', (ev) => { if (ev.target === $('detail')) $('detail').close(); });
+$('detail').addEventListener('close', () => { saveNotes(); detailId = null; });
 // "/" jumps to the filter, like most list pages.
 document.addEventListener('keydown', (ev) => {
-  if (ev.key === '/' && document.activeElement !== $('filter')) {
+  if (ev.key === '/' && !$('detail').open && document.activeElement !== $('filter')) {
     ev.preventDefault();
     $('filter').focus();
   }

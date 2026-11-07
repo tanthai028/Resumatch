@@ -31,6 +31,13 @@ After editing `config.json` or any code, click the reload icon on the extension'
 6. **View log** opens the log page: date, company, role (links to the posting), job ID,
    resume sent (links to the PDF) and match level (High / Medium / Low). Filter with `/`,
    remove rows or clear all (both undoable for 10 seconds), and **Export CSV**.
+7. **Status** is Applied, Interview, Offer or Rejected. Rejected rows fade back.
+8. **Follow-ups:** an application still marked Applied after `thresholds.followUpDays`
+   (default 10) shows **Follow up** in its Status cell. After you follow up, click **Done**
+   to restart the count. The toolbar icon shows how many are due.
+9. **Click a row** to open its details: change the status, mark a follow-up, and keep
+   notes (recruiter, salary, interview dates). Notes save as you type and are searchable
+   with the filter.
 
 To make the resume links work, copy your PDFs into `resumes/` (see `resumes/README.md`).
 They are ignored by git.
@@ -98,6 +105,7 @@ Run single cases with `node tests/run-tests.js 1 6`.
 ```
 manifest.json        extension manifest (MV3)
 config.json          resumes, keywords, skills, synonyms, thresholds
+background.js        toolbar badge: count of applications due for a follow-up
 src/scoring.js       scoring, red flags, verdict (runs in browser and Node)
 src/log-store.js     application log in chrome.storage.local, CSV export
 popup/               popup UI

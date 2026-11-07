@@ -28,7 +28,7 @@
   <table id="table">
     <thead>
       <tr>
-        <th>Date</th><th>Company</th><th>Role</th><th>Job ID</th><th>Resume sent</th><th>Match</th><th><span class="sr-only">Actions</span></th>
+        <th>Date</th><th>Company</th><th>Role</th><th>Job ID</th><th>Resume sent</th><th>Match</th><th>Status</th><th><span class="sr-only">Actions</span></th>
       </tr>
     </thead>
     <tbody id="rows"></tbody>
@@ -36,6 +36,36 @@
   </div>
   <p id="empty" class="empty" hidden>No applications yet. Open a job posting, click the Resume Matcher icon, then click <b>Log it</b>.</p>
   <p id="no-match" class="empty" hidden>No applications match that filter.</p>
+
+  <!-- Opens when a row is clicked: status, follow-up and notes for one application.
+       Everything saves as you go; there is no Save button. -->
+  <dialog id="detail" class="detail" aria-labelledby="d-title">
+    <div class="d-head">
+      <div>
+        <h2 id="d-title"></h2>
+        <div id="d-sub" class="muted"></div>
+      </div>
+      <button id="d-close" class="link">Close</button>
+    </div>
+
+    <div class="d-section">
+      <div class="d-label" id="d-status-label">Status</div>
+      <div id="d-status" class="segmented" role="radiogroup" aria-labelledby="d-status-label"></div>
+    </div>
+
+    <div class="d-section d-follow">
+      <span id="d-follow-text" class="muted"></span>
+      <button id="d-follow" class="link">I followed up today</button>
+    </div>
+
+    <div class="d-section">
+      <label class="d-label" for="d-notes">Notes</label>
+      <textarea id="d-notes" rows="7" placeholder="Recruiter, salary range, interview dates, anything to remember"></textarea>
+      <div id="d-saved" class="d-saved muted" aria-live="polite"></div>
+    </div>
+
+    <div id="d-links" class="d-links"></div>
+  </dialog>
 
   <script src="../src/scoring.js"></script>
   <script src="../src/log-store.js"></script>
