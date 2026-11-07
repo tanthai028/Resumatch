@@ -122,7 +122,7 @@ function setMatchedOpen(open) {
   const n = result ? result.matched.length : 0;
   $('matched').hidden = !open;
   $('matched-toggle').setAttribute('aria-expanded', String(open));
-  $('matched-toggle').textContent = `✓ ${n} matched keyword${n === 1 ? '' : 's'} ${open ? '▾' : '▸'}`;
+  $('matched-toggle').textContent = `✓ ${n} matched keyword${n === 1 ? '' : 's'}`;
 }
 
 function render() {
@@ -190,6 +190,12 @@ function fillResumeSelect() {
 // Actions
 // ---------------------------------------------------------------------------
 
+// Highlights the active text source ("selection" | "page" | null) in the segmented control.
+function setSource(mode) {
+  $('use-selection').setAttribute('aria-pressed', String(mode === 'selection'));
+  $('use-page').setAttribute('aria-pressed', String(mode === 'page'));
+}
+
 function analyzeText(text, sourceLabel) {
   jobText = String(text || '').trim();
   $('job-text').value = jobText;
@@ -198,10 +204,8 @@ function analyzeText(text, sourceLabel) {
     $('empty').hidden = false;
     return;
   }
-  if (sourceLabel) {
-    $('source-info').textContent = sourceLabel;
-    $('source-info').title = `${jobText.length.toLocaleString()} characters analyzed`;
-  }
+  // undefined keeps the current note (e.g. re-run after a title edit); '' clears it.
+  if (sourceLabel !== undefined) $('source-info').textContent = sourceLabel;
   result = ResumeScoring.analyze({ text: jobText, title: $('job-title').value, company: $('job-company').value, url: page.url }, config);
   render();
 }
@@ -285,16 +289,29 @@ async function init() {
   $('job-title').value = guessTitle(page);
   $('job-company').value = guessCompany(page);
 
-  if (page.selection && page.selection.length >= MIN_SELECTION) analyzeText(page.selection, 'Using highlighted text');
+  if (page.selection && page.selection.length >= MIN_SELECTION) {
+    setSource('selection');
+    analyzeText(page.selection, '');
+  }
   checkDuplicates();
 
-  $('use-page').addEventListener('click', () => analyzeText(page.pageText, 'Whole page: highlight the description for cleaner results'));
+  $('use-page').addEventListener('click', () => {
+    setSource('page');
+    analyzeText(page.pageText, 'Whole page can include unrelated text. Highlight the description for cleaner results.');
+  });
   $('use-selection').addEventListener('click', async () => {
     try { page = Object.assign(page, await grabPage(tab)); } catch (e) { /* keep old */ }
-    if (page.selection && page.selection.length >= MIN_SELECTION) analyzeText(page.selection, 'Using highlighted text');
-    else $('source-info').textContent = 'No text highlighted on the page.';
+    if (page.selection && page.selection.length >= MIN_SELECTION) {
+      setSource('selection');
+      analyzeText(page.selection, '');
+    } else {
+      $('source-info').textContent = 'No text highlighted on the page.';
+    }
   });
-  $('reanalyze').addEventListener('click', () => analyzeText($('job-text').value, 'Using edited text'));
+  $('reanalyze').addEventListener('click', () => {
+    setSource(null);
+    analyzeText($('job-text').value, 'Using edited text.');
+  });
   $('job-title').addEventListener('change', () => { if (jobText) analyzeText(jobText); checkDuplicates(); });
   $('job-company').addEventListener('change', checkDuplicates);
   $('matched-toggle').addEventListener('click', () => setMatchedOpen($('matched').hidden));
