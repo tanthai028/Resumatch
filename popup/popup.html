@@ -6,74 +6,75 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <!-- Phone-width, single column, fits Chrome's 600px popup height without scrolling.
-       Chrome popups don't reliably show title="" tooltips, so details expand on click. -->
+  <!-- Minimal by design: verdict, scores, gaps, dealbreakers, log. Phone-width,
+       fits Chrome's 600px popup height. Chrome popups don't reliably show
+       title="" tooltips, so explanations expand on click instead. -->
   <header class="topbar">
     <h1>Resume Matcher</h1>
     <button id="open-log" class="link">View log</button>
   </header>
 
-  <!-- Job details (prefilled from the page, editable). Shown once there is a result. -->
-  <section id="job" hidden>
-    <div class="row">
-      <input id="job-title" class="grow" type="text" placeholder="Job title" aria-label="Job title">
-      <input id="job-company" class="company" type="text" placeholder="Company" aria-label="Company">
-    </div>
-    <div class="segmented" role="group" aria-label="Text to analyze">
-      <button id="use-selection" aria-pressed="false">Use selection</button>
-      <button id="use-page" aria-pressed="false">Use whole page</button>
-    </div>
-  </section>
-  <div id="source-info" class="muted small-text"></div>
-  <div id="dup-warning" class="dup" hidden></div>
+  <div id="notice" class="notice" hidden></div>
 
-  <!-- Before any analysis: one instruction, one action. -->
+  <!-- Before any analysis: one instruction, one action, paste as a fallback. -->
   <div id="empty" class="empty">
     <p>Highlight the job description, then reopen this popup.</p>
-    <button id="empty-page" class="primary">Analyze whole page</button>
+    <div class="row">
+      <button id="empty-page" class="primary">Analyze whole page</button>
+      <button id="show-paste" class="link">or paste text</button>
+    </div>
+  </div>
+
+  <!-- Paste box: only shown on request or when the page can't be read. -->
+  <div id="paste" class="paste" hidden>
+    <textarea id="job-text" rows="6" placeholder="Paste the job description"></textarea>
+    <button id="reanalyze" class="primary">Analyze</button>
   </div>
 
   <!-- Analysis results -->
   <section id="results" hidden>
+    <!-- Title and company look like text but are editable (used for the log). -->
+    <div class="job">
+      <input id="job-title" class="inline title" type="text" placeholder="Add job title" aria-label="Job title">
+      <input id="job-company" class="inline company" type="text" placeholder="Add company" aria-label="Company">
+    </div>
+
     <div id="verdict" class="verdict">
       <div id="verdict-label" class="verdict-label"></div>
       <div id="verdict-reason" class="verdict-reason"></div>
-      <button id="tailor" class="primary" hidden>Copy prompt &amp; open Claude</button>
-      <div id="tailor-status" class="small-text" hidden></div>
+      <button id="tailor" class="primary" hidden>Copy prompt and open Claude</button>
     </div>
 
-    <ul id="scores" class="scores"></ul>
+    <ul id="scores" class="scores" aria-label="Fit score per resume, out of 100"></ul>
 
-    <!-- Only real gaps get chips; matched keywords are a count that expands on click. -->
-    <div class="kw-row">
-      <button id="gaps-help" class="kw-label link" aria-expanded="false" aria-controls="gaps-legend" aria-label="Gaps: show color key">Gaps<sup>?</sup></button>
+    <div id="gaps-row" class="kw-row">
+      <button id="gaps-help" class="kw-label link" aria-expanded="false" aria-controls="gaps-legend">Gaps<sup>?</sup></button>
       <div id="missing" class="chips"></div>
     </div>
     <div id="gaps-legend" class="legend" hidden>
-      <span class="chip core">required tool</span><span>counts toward skip</span>
-      <span class="chip soft">learnable</span><span>warning only</span>
-      <span class="chip mention">preferred</span><span>not required</span>
+      <span class="chip core">tool</span><span>required, counts toward skip</span>
+      <span class="chip soft">skill</span><span>required, but learnable</span>
+      <span class="chip mention">extra</span><span>preferred, not required</span>
     </div>
-    <button id="matched-toggle" class="link matched-toggle" aria-expanded="false" aria-controls="matched"></button>
-    <div id="matched" class="chips matched-list" hidden></div>
 
     <ul id="flags" class="flags"></ul>
-    <div id="meta" class="meta"></div>
 
     <div class="row log-row">
       <label for="resume-used" class="log-label">Sent</label>
       <select id="resume-used" class="grow"></select>
       <button id="log-btn" class="primary">Log it</button>
     </div>
-    <div id="log-status" class="muted small-text"></div>
-  </section>
+    <div id="log-note" class="log-note" hidden>
+      <span id="log-msg"></span>
+      <button id="undo-log" class="link" hidden>Undo</button>
+    </div>
 
-  <!-- Raw text: lets you fix a bad capture or paste text when the page can't be read -->
-  <details id="text-box">
-    <summary>Paste text</summary>
-    <textarea id="job-text" rows="6" placeholder="Paste or edit the job description"></textarea>
-    <button id="reanalyze" class="small">Re-analyze</button>
-  </details>
+    <!-- Where the analyzed text came from, with a one-click switch. -->
+    <div class="footer">
+      <span id="source-info"></span>
+      <button id="switch-source" class="link"></button>
+    </div>
+  </section>
 
   <script src="../src/scoring.js"></script>
   <script src="../src/log-store.js"></script>

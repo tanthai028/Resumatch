@@ -10,7 +10,9 @@ let config = null;   // parsed config.json
 let page = {};       // what we read from the tab (url, title, selection, pageText...)
 let jobText = '';    // text currently being analyzed
 let result = null;   // last ResumeScoring.analyze() result
+let source = null;   // 'selection' | 'page' | 'paste': where jobText came from
 let confirmDuplicate = false; // second click on "Log" after a duplicate warning
+let lastLoggedId = null;      // for "Undo"
 
 const MIN_SELECTION = 50; // shorter selections are probably accidental
 
@@ -104,11 +106,9 @@ function el(tag, attrs, text) {
 }
 
 // Shows the first `max` chips; the rest collapse into a "+N" button that
-// expands in place (hover tooltips don't show reliably in Chrome popups).
-// classOf(item) returns an extra CSS class for each chip.
+// expands in place. classOf(item) returns an extra CSS class for each chip.
 function renderChips(container, items, max, classOf) {
   container.replaceChildren();
-  if (!items.length) container.append(el('span', { className: 'none' }, 'None'));
   const chip = (item) => el('span', { className: 'chip ' + (classOf ? classOf(item) : '') }, item);
   items.slice(0, max).forEach((item) => container.append(chip(item)));
   if (items.length > max) {
@@ -118,27 +118,43 @@ function renderChips(container, items, max, classOf) {
   }
 }
 
-function setMatchedOpen(open) {
-  const n = result ? result.matched.length : 0;
-  $('matched').hidden = !open;
-  $('matched-toggle').setAttribute('aria-expanded', String(open));
-  $('matched-toggle').textContent = `${n} matched keyword${n === 1 ? '' : 's'} · ${open ? 'hide' : 'show'}`;
+// Which screen is showing: 'empty' (instructions), 'paste' (paste box) or 'results'.
+function showScreen(name) {
+  $('empty').hidden = name !== 'empty';
+  $('paste').hidden = name !== 'paste';
+  $('results').hidden = name !== 'results';
+  if (name === 'paste') $('job-text').focus();
+}
+
+// One-line notice under the header (errors, "nothing highlighted", duplicates).
+function notice(text) {
+  $('notice').textContent = text || '';
+  $('notice').hidden = !text;
+}
+
+// Footer: says where the analyzed text came from and offers the other source.
+function renderSource() {
+  const labels = { selection: 'From your highlighted text.', page: 'From the whole page.', paste: 'From pasted text.' };
+  $('source-info').textContent = labels[source] || '';
+  const sw = $('switch-source');
+  sw.hidden = source === 'paste' && !page.pageText;
+  sw.textContent = source === 'page' ? 'Use highlighted text' : 'Use whole page';
 }
 
 function render() {
-  $('empty').hidden = true;
-  $('job').hidden = false;
-  $('results').hidden = false;
+  showScreen('results');
 
-  // Verdict
+  // Verdict. "Use" needs no explanation; tailor/skip say why in one line.
   const v = result.verdict;
   $('verdict').className = 'verdict ' + v.type;
   $('verdict-label').textContent = v.label;
-  $('verdict-reason').textContent = v.reasons.join('; ');
+  const reason = v.type === 'tailor' ? v.reasons[0] : v.type === 'skip' ? 'Reason: ' + v.reasons.join(', ') + '.' : '';
+  $('verdict-reason').textContent = reason;
+  $('verdict-reason').hidden = !reason;
   $('tailor').hidden = v.type !== 'tailor';
-  $('tailor-status').hidden = true;
+  $('tailor').textContent = 'Copy prompt and open Claude';
 
-  // Scores (top pick highlighted)
+  // Scores (top pick highlighted).
   const list = $('scores');
   list.replaceChildren();
   result.scores.forEach((s, i) => {
@@ -151,31 +167,26 @@ function render() {
     list.append(li);
   });
 
-  // Gaps get chips colored by how much they matter (legend behind "Gaps ⓘ").
+  // Gaps: hidden entirely when there are none.
   const core = new Set(result.facts.missingRequiredTools);
   const soft = new Set([...result.facts.missingMinorTools, ...result.facts.missingRequiredSkills]);
+  $('gaps-row').hidden = !result.missing.length;
+  if (!result.missing.length) $('gaps-legend').hidden = true;
   renderChips($('missing'), result.missing, 6, (t) => (core.has(t) ? 'core' : soft.has(t) ? 'soft' : 'mention'));
-  // Matched keywords: a collapsed count that expands on click.
-  renderChips($('matched'), result.matched, Infinity);
-  setMatchedOpen(false);
 
-  // Red flags and warnings, most serious first; neutral facts go on one grey line.
+  // Dealbreakers and warnings only; tool/skill gaps are already chips.
   const flags = $('flags');
   flags.replaceChildren();
-  // Tool/skill flags are skipped here: the Gaps chips already show them.
   const inChips = new Set(['tools', 'minor-tools', 'skills', 'preferred']);
-  const serious = result.flags.filter((f) => (f.severity === 'flag' || f.severity === 'warn') && !inChips.has(f.type));
-  [...serious].sort((a, b) => (a.severity === 'flag' ? 0 : 1) - (b.severity === 'flag' ? 0 : 1))
+  result.flags
+    .filter((f) => (f.severity === 'flag' || f.severity === 'warn') && !inChips.has(f.type))
+    .sort((a, b) => (a.severity === 'flag' ? 0 : 1) - (b.severity === 'flag' ? 0 : 1))
     .forEach((f) => flags.append(el('li', { className: f.severity }, f.text)));
-  // Grey line: only logistics you'd plan around (work arrangement, location).
-  const facts = result.flags.filter((f) => f.severity === 'info' && (f.type === 'arrangement' || f.type === 'location')).map((f) => f.text);
-  $('meta').textContent = facts.join(' · ');
 
-  // Default "resume used" for the log
-  const sel = $('resume-used');
-  sel.value = v.type === 'tailor' ? 'Tailored (based on ' + result.top.name + ')' : result.top.name;
-  $('log-status').textContent = '';
-  confirmDuplicate = false;
+  // Default "resume used" for the log.
+  $('resume-used').value = v.type === 'tailor' ? 'Tailored (based on ' + result.top.name + ')' : result.top.name;
+  resetLogButton();
+  renderSource();
 }
 
 function fillResumeSelect() {
@@ -192,35 +203,29 @@ function fillResumeSelect() {
 // Actions
 // ---------------------------------------------------------------------------
 
-// Highlights the active text source ("selection" | "page" | null) in the segmented control.
-function setSource(mode) {
-  $('use-selection').setAttribute('aria-pressed', String(mode === 'selection'));
-  $('use-page').setAttribute('aria-pressed', String(mode === 'page'));
-}
-
-function analyzeText(text, sourceLabel) {
-  jobText = String(text || '').trim();
+// Returns false (and changes nothing) when there is no text to analyze.
+function analyzeText(text, from) {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  jobText = t;
+  if (from) source = from;
   $('job-text').value = jobText;
-  if (!jobText) {
-    $('results').hidden = true;
-    $('job').hidden = true;
-    $('empty').hidden = false;
-    return;
-  }
-  // undefined keeps the current note (e.g. re-run after a title edit); '' clears it.
-  if (sourceLabel !== undefined) $('source-info').textContent = sourceLabel;
+  notice('');
   result = ResumeScoring.analyze({ text: jobText, title: $('job-title').value, company: $('job-company').value, url: page.url }, config);
   render();
+  checkDuplicates();
+  return true;
 }
 
 async function checkDuplicates() {
   const log = await LogStore.getLog();
-  const dups = LogStore.findDuplicates(log, { url: page.url, company: $('job-company').value, title: $('job-title').value });
-  const box = $('dup-warning');
-  box.hidden = !dups.length;
+  const dups = LogStore.findDuplicates(log, { url: page.url, company: $('job-company').value, title: $('job-title').value })
+    .filter((d) => d.id !== lastLoggedId);
   if (dups.length) {
     const d = dups[0];
-    box.textContent = `Already logged on ${d.date}: ${d.title} at ${d.company} (used ${d.resume}).`;
+    notice(`Already logged on ${d.date} with ${d.resume}.`);
+  } else if ($('notice').textContent.startsWith('Already logged')) {
+    notice('');
   }
   return dups;
 }
@@ -242,22 +247,35 @@ async function copyText(text) {
 async function onTailor() {
   const prompt = ResumeScoring.buildClaudePrompt(result, jobText, config);
   await copyText(prompt);
-  $('tailor-status').textContent = 'Prompt copied — paste it into Claude.';
-  $('tailor-status').hidden = false;
-  // Opening a tab closes the popup, so copy first.
-  chrome.tabs.create({ url: 'https://claude.ai/new' });
+  $('tailor').textContent = 'Copied. Opening Claude…';
+  // Opening a tab closes the popup, so copy first; the short pause lets the label show.
+  setTimeout(() => chrome.tabs.create({ url: 'https://claude.ai/new' }), 400);
+}
+
+function resetLogButton() {
+  confirmDuplicate = false;
+  $('log-btn').textContent = 'Log it';
+  $('log-btn').disabled = false;
+  $('log-note').hidden = true;
+}
+
+function logNote(text, canUndo) {
+  $('log-msg').textContent = text;
+  $('undo-log').hidden = !canUndo;
+  $('log-note').hidden = false;
 }
 
 async function onLog() {
   const dups = await checkDuplicates();
   if (dups.length && !confirmDuplicate) {
     confirmDuplicate = true;
-    $('log-status').textContent = 'Looks like a duplicate. Click again to log anyway.';
+    $('log-btn').textContent = 'Log again?';
+    logNote('You already logged this job. Click again to log it anyway.', false);
     return;
   }
   const now = new Date();
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  await LogStore.addEntry({
+  lastLoggedId = await LogStore.addEntry({
     company: $('job-company').value.trim(),
     title: $('job-title').value.trim(),
     url: page.url || '',
@@ -267,7 +285,15 @@ async function onLog() {
     score: result.top.score
   });
   confirmDuplicate = false;
-  $('log-status').textContent = 'Logged ✓';
+  $('log-btn').textContent = 'Logged';
+  $('log-btn').disabled = true;
+  logNote(`Saved to your log as ${$('resume-used').value}.`, true);
+}
+
+async function onUndo() {
+  if (lastLoggedId) await LogStore.deleteEntry(lastLoggedId);
+  lastLoggedId = null;
+  resetLogButton();
   checkDuplicates();
 }
 
@@ -280,47 +306,40 @@ async function init() {
   fillResumeSelect();
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  let readable = true;
   try {
     page = await grabPage(tab);
   } catch (e) {
     // chrome:// pages, the Web Store, PDFs, etc. can't be scripted.
+    readable = false;
     page = { url: tab && tab.url, docTitle: tab && tab.title, selection: '', pageText: '' };
-    $('source-info').textContent = "Can't read this page. Paste the job description below.";
-    $('empty').hidden = true;
-    $('text-box').open = true;
   }
 
   $('job-title').value = guessTitle(page);
   $('job-company').value = guessCompany(page);
 
   if (page.selection && page.selection.length >= MIN_SELECTION) {
-    setSource('selection');
-    analyzeText(page.selection, '');
+    analyzeText(page.selection, 'selection');
+  } else if (!readable) {
+    showScreen('paste');
+    notice("Chrome won't let extensions read this page. Paste the job description instead.");
+  } else {
+    showScreen('empty');
+    checkDuplicates();
   }
-  checkDuplicates();
 
-  const useWholePage = () => {
-    setSource('page');
-    analyzeText(page.pageText, '');
-  };
-  $('use-page').addEventListener('click', useWholePage);
-  $('empty-page').addEventListener('click', useWholePage);
-  $('use-selection').addEventListener('click', async () => {
+  $('empty-page').addEventListener('click', () => analyzeText(page.pageText, 'page') || notice('This page has no readable text.'));
+  $('show-paste').addEventListener('click', () => showScreen('paste'));
+  $('reanalyze').addEventListener('click', () => analyzeText($('job-text').value, 'paste') || notice('Paste the job description first.'));
+  $('switch-source').addEventListener('click', async () => {
+    if (source !== 'page') return analyzeText(page.pageText, 'page');
     try { page = Object.assign(page, await grabPage(tab)); } catch (e) { /* keep old */ }
-    if (page.selection && page.selection.length >= MIN_SELECTION) {
-      setSource('selection');
-      analyzeText(page.selection, '');
-    } else {
-      $('source-info').textContent = 'No text highlighted on the page.';
+    if (!(page.selection && page.selection.length >= MIN_SELECTION && analyzeText(page.selection, 'selection'))) {
+      notice('Nothing is highlighted on the page. Highlight the description, then reopen this popup.');
     }
   });
-  $('reanalyze').addEventListener('click', () => {
-    setSource(null);
-    analyzeText($('job-text').value, '');
-  });
-  $('job-title').addEventListener('change', () => { if (jobText) analyzeText(jobText); checkDuplicates(); });
+  $('job-title').addEventListener('change', () => { if (jobText) analyzeText(jobText); });
   $('job-company').addEventListener('change', checkDuplicates);
-  $('matched-toggle').addEventListener('click', () => setMatchedOpen($('matched').hidden));
   $('gaps-help').addEventListener('click', () => {
     const open = $('gaps-legend').hidden;
     $('gaps-legend').hidden = !open;
@@ -328,10 +347,11 @@ async function init() {
   });
   $('tailor').addEventListener('click', onTailor);
   $('log-btn').addEventListener('click', onLog);
+  $('undo-log').addEventListener('click', onUndo);
   $('open-log').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') }));
 }
 
 init().catch((e) => {
-  $('empty').textContent = 'Error: ' + e.message;
+  notice("Couldn't start: " + e.message);
   console.error(e);
 });

@@ -55,10 +55,17 @@ input, select, textarea {
   height: 28px; padding: 0 var(--s2); font: inherit; color: var(--text);
   border: 1px solid var(--field); border-radius: var(--radius); background: var(--bg);
 }
-input.grow { flex: 3; }
 /* Long titles/companies end in "..." (Chrome applies this while the field isn't focused). */
 input[type="text"] { text-overflow: ellipsis; }
-input.company { flex: 2; min-width: 0; }
+
+/* Title and company: read as plain text, but are editable fields.
+   A dashed underline on hover and a border on focus show that. */
+.job { display: flex; flex-direction: column; }
+input.inline { width: 100%; height: auto; padding: 1px 0; border: none; border-bottom: 1px dashed transparent; border-radius: 0; background: transparent; }
+input.inline:hover { border-bottom-color: var(--field); }
+input.inline:focus { outline: none; border-bottom: 1px solid var(--ink); }
+input.inline.title { font-size: 14px; font-weight: 600; }
+input.inline.company { color: var(--muted); }
 textarea { display: block; width: 100%; height: auto; padding: var(--s1) var(--s2); resize: vertical; font-size: var(--fs-sm); margin: var(--s1) 0; }
 
 button {
@@ -68,32 +75,32 @@ button {
 button:hover { border-color: var(--ink); }
 button.primary { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
 button.primary:hover { background: var(--mark-yellow); color: var(--ink); }
+button:disabled, button:disabled:hover { cursor: default; background: var(--track); border-color: var(--track); color: var(--muted); }
 button.link { border: none; background: none; color: var(--text); padding: 0; height: auto; text-decoration: underline; text-underline-offset: 2px; }
 button.link:hover { background: var(--mark-yellow); }
 
 /* Visible keyboard focus everywhere. */
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 
-/* Text source: two-option segmented control; the active one is inked. */
-.segmented { display: flex; margin-top: var(--s1); border: 1px solid var(--ink); border-radius: var(--radius); overflow: hidden; }
-.segmented button { flex: 1; border: none; border-radius: 0; height: 24px; font-size: var(--fs-sm); color: var(--muted); }
-.segmented button + button { border-left: 1px solid var(--ink); }
-.segmented button[aria-pressed="true"] { background: var(--ink); color: #fff; }
-
 .muted { color: var(--muted); }
 .small-text { font-size: var(--fs-sm); margin-top: var(--s1); }
-#source-info:empty { display: none; }
 
 /* Empty state: left-aligned instruction, button sized to its label. */
 .empty { padding: var(--s1) 0 0; }
 .empty p { margin: 0 0 var(--s2); color: var(--muted); }
+.empty .row { gap: var(--s3); }
+
+/* Notice line under the header: errors, duplicates, "nothing highlighted". */
+.notice { margin-bottom: var(--s2); font-size: var(--fs-sm); color: var(--amber); }
+
+/* Paste fallback. */
+.paste .primary { margin-top: var(--s1); }
 
 /* Small colored square before a line of status text. */
-.dup::before, .flags li::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px; background: currentColor; }
-.dup { margin-top: var(--s2); font-size: var(--fs-sm); color: var(--amber); }
+.notice::before, .flags li::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px; background: currentColor; }
 
 /* Verdict: the label is "highlighted" in the marker color for its type. */
-.verdict { margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--rule); }
+.verdict { margin-top: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--rule); }
 .verdict-label { display: inline; font: 400 20px/1.35 var(--display); padding: 0 var(--s1); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .verdict.use .verdict-label { background: var(--mark-yellow); }
 .verdict.tailor .verdict-label { background: var(--mark-peach); }
@@ -128,8 +135,6 @@ button.chip.more { height: 20px; padding: 0 6px; font-size: var(--fs-sm); color:
 .legend { display: grid; grid-template-columns: auto 1fr; gap: var(--s1) var(--s2); align-items: center; margin-top: var(--s2); font-size: var(--fs-sm); color: var(--muted); }
 .legend .chip { justify-self: start; }
 
-button.matched-toggle { margin-top: var(--s2); font-size: var(--fs-sm); color: var(--muted); }
-.matched-list { margin-top: var(--s1); }
 
 /* Red flags: plain lines with a colored square, no boxes. */
 .flags { list-style: none; margin: var(--s2) 0 0; padding: 0; }
@@ -137,15 +142,13 @@ button.matched-toggle { margin-top: var(--s2); font-size: var(--fs-sm); color: v
 .flags li { margin-bottom: 2px; font-size: var(--fs-sm); word-break: break-word; }
 .flags li.flag { color: var(--red); }
 .flags li.warn { color: var(--amber); }
-.meta { margin-top: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
-.meta:empty { display: none; }
 
 .log-row { margin-top: var(--s3); padding-top: var(--s3); border-top: 1.5px solid var(--ink); }
 .log-label { font-size: var(--fs-sm); color: var(--muted); }
 .log-row select { padding: 0 var(--s1); }
+.log-note { margin-top: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
+.log-note .link { margin-left: var(--s1); font-size: var(--fs-sm); }
 
-details { margin-top: var(--s2); }
-summary { cursor: pointer; color: var(--muted); font-size: var(--fs-sm); list-style: none; }
-summary::-webkit-details-marker { display: none; }
-summary::before { content: "+ "; }
-details[open] summary::before { content: "\2212  "; }
+/* Footer: where the text came from, plus a switch. */
+.footer { margin-top: var(--s3); font-size: var(--fs-sm); color: var(--muted); }
+.footer .link { margin-left: var(--s1); font-size: var(--fs-sm); color: var(--muted); }

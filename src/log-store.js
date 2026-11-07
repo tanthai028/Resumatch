@@ -18,10 +18,13 @@
     await chrome.storage.local.set({ [KEY]: entries });
   }
 
+  // Returns the new entry's id (used by the popup's "Undo").
   async function addEntry(entry) {
     const log = await getLog();
-    log.unshift(Object.assign({ id: Date.now() + '-' + Math.random().toString(36).slice(2, 7) }, entry));
+    const id = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    log.unshift(Object.assign({ id }, entry));
     await saveLog(log);
+    return id;
   }
 
   async function deleteEntry(id) {

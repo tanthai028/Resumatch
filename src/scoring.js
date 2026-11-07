@@ -305,7 +305,7 @@
       const quoted = said.length === 1 && said[0] === `${years.required}+ years` ? '' : ` ("${said.join('", "')}")`;
       const msg = `Requires ${years.required}+ years${quoted}; you have ~${exp}`;
       if (facts.yearsGap > T.flagYearsGap) flags.push({ type: 'years', severity: 'flag', text: msg });
-      else flags.push({ type: 'years', severity: 'info', text: `${years.required}+ yrs ✓` });
+      else flags.push({ type: 'years', severity: 'info', text: `Meets ${years.required}+ years` });
     }
     if (years.preferred !== null && (years.required === null || years.preferred > years.required)) {
       flags.push({ type: 'years', severity: 'info', text: `Prefers ${years.preferred}+ yrs` });
@@ -368,7 +368,7 @@
     const citizen = /\b(?:u\.?s\.? citizen(?:ship)?|united states citizen(?:ship)?|citizenship (?:is )?required|u\.?s\.? persons?|itar|export[\s-]controll?ed)\b/.exec(normText);
     if (citizen) {
       const sev = config.candidate.usCitizen ? 'plus' : 'flag';
-      flags.push({ type: 'citizenship', severity: sev, text: config.candidate.usCitizen ? 'U.S. citizen ✓' : 'U.S. citizenship required' });
+      flags.push({ type: 'citizenship', severity: sev, text: config.candidate.usCitizen ? 'U.S. citizenship required (you qualify)' : 'U.S. citizenship required' });
     }
     // Sponsorship/visa text is not reported: it never matters for a U.S. citizen.
     if (!config.candidate.usCitizen && /\b(?:no|not|unable to)\b[^.]{0,40}\bsponsor/.test(normText)) {
@@ -411,16 +411,16 @@
     const second = sorted[1] || { score: 0 };
     const reasons = [];
 
-    if (facts.yearsGap !== null && facts.yearsGap > T.skipYearsGap) reasons.push(`needs ${facts.yearsRequired}+ years (gap ${facts.yearsGap} > ${T.skipYearsGap})`);
+    if (facts.yearsGap !== null && facts.yearsGap > T.skipYearsGap) reasons.push(`needs ${facts.yearsRequired}+ years`);
     if (facts.missingRequiredTools.length >= T.skipMissingRequiredTools) reasons.push(`${facts.missingRequiredTools.length} required tools missing`);
-    if (facts.seniorTitle) reasons.push(`senior title ("${facts.seniorTitle}")`);
+    if (facts.seniorTitle) reasons.push('senior-level title');
     if (reasons.length) return { type: 'skip', label: 'Likely skip', reasons };
 
     if (top.score < T.tailorBelowScore) {
-      return { type: 'tailor', label: 'Tailor on Claude', reasons: [`best score ${top.score} is below ${T.tailorBelowScore}`] };
+      return { type: 'tailor', label: 'Tailor on Claude', reasons: ['No resume fits well enough to send as is.'] };
     }
     if (top.score - second.score <= T.closeScoreGap) {
-      return { type: 'tailor', label: 'Tailor on Claude', reasons: [`${top.name} (${top.score}) and ${second.name} (${second.score}) are within ${T.closeScoreGap} points`] };
+      return { type: 'tailor', label: 'Tailor on Claude', reasons: [`${top.name} and ${second.name} fit about equally.`] };
     }
     return { type: 'use', label: `Use ${top.name}`, reasons: [`Attach ${top.filename} · ${top.score - second.score} pts ahead of ${second.name}`] };
   }
