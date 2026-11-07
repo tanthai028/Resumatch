@@ -103,16 +103,26 @@ function el(tag, attrs, text) {
   return e;
 }
 
-// Shows the first `max` chips; the rest collapse into a "+N" chip (hover to see them).
-function renderChips(container, items, max) {
+// Shows the first `max` chips; the rest collapse into a "+N" button that
+// expands in place (hover tooltips don't show reliably in Chrome popups).
+// classOf(item) returns an extra CSS class for each chip.
+function renderChips(container, items, max, classOf) {
   container.replaceChildren();
   if (!items.length) container.append(el('span', { className: 'none' }, 'None'));
-  for (const item of items.slice(0, max)) container.append(el('span', { className: 'chip' }, item));
+  const chip = (item) => el('span', { className: 'chip ' + (classOf ? classOf(item) : '') }, item);
+  items.slice(0, max).forEach((item) => container.append(chip(item)));
   if (items.length > max) {
-    const more = el('span', { className: 'chip more' }, `+${items.length - max}`);
-    more.title = items.slice(max).join(', ');
+    const more = el('button', { className: 'chip more' }, `+${items.length - max}`);
+    more.addEventListener('click', () => more.replaceWith(...items.slice(max).map(chip)));
     container.append(more);
   }
+}
+
+function setMatchedOpen(open) {
+  const n = result ? result.matched.length : 0;
+  $('matched').hidden = !open;
+  $('matched-toggle').setAttribute('aria-expanded', String(open));
+  $('matched-toggle').textContent = `✓ ${n} matched keyword${n === 1 ? '' : 's'} ${open ? '▾' : '▸'}`;
 }
 
 function render() {
@@ -127,12 +137,11 @@ function render() {
   $('tailor').hidden = v.type !== 'tailor';
   $('tailor-status').hidden = true;
 
-  // Scores (top pick highlighted; hover shows which keywords earned points)
+  // Scores (top pick highlighted)
   const list = $('scores');
   list.replaceChildren();
   result.scores.forEach((s, i) => {
     const li = el('li', { className: i === 0 ? 'top' : '' });
-    li.title = s.hits.map((h) => `${h.term} ×${h.count} (+${h.points})`).join('\n') || 'No keyword hits';
     const bar = el('div', { className: 'bar' });
     const fill = el('div', { className: 'fill' });
     fill.style.width = s.score + '%';
@@ -141,18 +150,13 @@ function render() {
     list.append(li);
   });
 
-  // Gaps get chips colored by how much they matter; matched keywords are just a count.
-  renderChips($('missing'), result.missing, 8);
+  // Gaps get chips colored by how much they matter (legend behind "Gaps ⓘ").
   const core = new Set(result.facts.missingRequiredTools);
   const soft = new Set([...result.facts.missingMinorTools, ...result.facts.missingRequiredSkills]);
-  for (const chip of $('missing').querySelectorAll('.chip:not(.more)')) {
-    const t = chip.textContent;
-    chip.classList.add(core.has(t) ? 'core' : soft.has(t) ? 'soft' : 'mention');
-    chip.title = core.has(t) ? 'Required tool (counts toward skip)' : soft.has(t) ? 'Required, but learnable' : 'Mentioned or preferred, not required';
-  }
-  const mc = $('matched-count');
-  mc.textContent = `${result.matched.length} matched`;
-  mc.title = result.matched.join(', ') || 'None';
+  renderChips($('missing'), result.missing, 6, (t) => (core.has(t) ? 'core' : soft.has(t) ? 'soft' : 'mention'));
+  // Matched keywords: a collapsed count that expands on click.
+  renderChips($('matched'), result.matched, Infinity);
+  setMatchedOpen(false);
 
   // Red flags and warnings, most serious first; neutral facts go on one grey line.
   const flags = $('flags');
@@ -293,6 +297,12 @@ async function init() {
   $('reanalyze').addEventListener('click', () => analyzeText($('job-text').value, 'Using edited text'));
   $('job-title').addEventListener('change', () => { if (jobText) analyzeText(jobText); checkDuplicates(); });
   $('job-company').addEventListener('change', checkDuplicates);
+  $('matched-toggle').addEventListener('click', () => setMatchedOpen($('matched').hidden));
+  $('gaps-help').addEventListener('click', () => {
+    const open = $('gaps-legend').hidden;
+    $('gaps-legend').hidden = !open;
+    $('gaps-help').setAttribute('aria-expanded', String(open));
+  });
   $('tailor').addEventListener('click', onTailor);
   $('log-btn').addEventListener('click', onLog);
   $('open-log').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') }));

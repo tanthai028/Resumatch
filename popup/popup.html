@@ -6,7 +6,8 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <!-- Laid out to fit Chrome's 600px popup height without scrolling. -->
+  <!-- Phone-width, single column, fits Chrome's 600px popup height without scrolling.
+       Chrome popups don't reliably show title="" tooltips, so details expand on click. -->
   <header class="topbar">
     <h1>Resume Matcher</h1>
     <button id="open-log" class="link">View log</button>
@@ -15,14 +16,14 @@
   <!-- Job details (prefilled from the page, editable) -->
   <section class="job">
     <div class="row">
-      <input id="job-title" class="grow" type="text" placeholder="Job title" title="Job title">
-      <input id="job-company" class="company" type="text" placeholder="Company" title="Company">
+      <input id="job-title" class="grow" type="text" placeholder="Job title" aria-label="Job title">
+      <input id="job-company" class="company" type="text" placeholder="Company" aria-label="Company">
     </div>
     <div class="row source-row">
-      <span id="source-info" class="muted grow"></span>
       <button id="use-selection" class="small">Use selection</button>
       <button id="use-page" class="small">Use whole page</button>
     </div>
+    <div id="source-info" class="muted small-text"></div>
     <div id="dup-warning" class="dup" hidden></div>
   </section>
 
@@ -31,29 +32,33 @@
   <!-- Analysis results -->
   <section id="results" hidden>
     <div id="verdict" class="verdict">
-      <div class="grow">
-        <div id="verdict-label" class="verdict-label"></div>
-        <div id="verdict-reason" class="verdict-reason"></div>
-      </div>
-      <button id="tailor" class="primary small" hidden>Copy prompt &amp; open Claude</button>
+      <div id="verdict-label" class="verdict-label"></div>
+      <div id="verdict-reason" class="verdict-reason"></div>
+      <button id="tailor" class="primary" hidden>Copy prompt &amp; open Claude</button>
+      <div id="tailor-status" class="small-text" hidden></div>
     </div>
-    <div id="tailor-status" class="muted small-text" hidden></div>
 
     <ul id="scores" class="scores"></ul>
 
-    <!-- Only real gaps get chips; matched keywords are a count (hover for the list). -->
+    <!-- Only real gaps get chips; matched keywords are a count that expands on click. -->
     <div class="kw-row">
-      <span class="kw-label bad" title="Tools/skills the posting asks for that you don't list. Red: required tool (counts toward skip). Amber: required but learnable. Grey: preferred or just mentioned.">Gaps</span>
+      <button id="gaps-help" class="kw-label bad link" aria-expanded="false">Gaps ⓘ</button>
       <div id="missing" class="chips"></div>
-      <span id="matched-count" class="matched-count"></span>
     </div>
+    <div id="gaps-legend" class="legend" hidden>
+      <span class="chip core">required tool</span> counts toward skip
+      <span class="chip soft">learnable</span> warning only
+      <span class="chip mention">preferred</span> not required
+    </div>
+    <button id="matched-toggle" class="link matched-toggle" aria-expanded="false"></button>
+    <div id="matched" class="chips matched-list" hidden></div>
 
     <ul id="flags" class="flags"></ul>
     <div id="meta" class="meta"></div>
 
     <div class="row log-row">
-      <select id="resume-used" class="grow" title="Resume used"></select>
-      <button id="log-btn" class="primary">Log this application</button>
+      <select id="resume-used" class="grow" aria-label="Resume used"></select>
+      <button id="log-btn" class="primary">Log it</button>
     </div>
     <div id="log-status" class="muted small-text"></div>
   </section>
