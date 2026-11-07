@@ -127,6 +127,7 @@ function setMatchedOpen(open) {
 
 function render() {
   $('empty').hidden = true;
+  $('job').hidden = false;
   $('results').hidden = false;
 
   // Verdict
@@ -202,6 +203,7 @@ function analyzeText(text, sourceLabel) {
   $('job-text').value = jobText;
   if (!jobText) {
     $('results').hidden = true;
+    $('job').hidden = true;
     $('empty').hidden = false;
     return;
   }
@@ -283,7 +285,8 @@ async function init() {
   } catch (e) {
     // chrome:// pages, the Web Store, PDFs, etc. can't be scripted.
     page = { url: tab && tab.url, docTitle: tab && tab.title, selection: '', pageText: '' };
-    $('source-info').textContent = "Can't read this page. Use Paste text below.";
+    $('source-info').textContent = "Can't read this page. Paste the job description below.";
+    $('empty').hidden = true;
     $('text-box').open = true;
   }
 
@@ -296,10 +299,12 @@ async function init() {
   }
   checkDuplicates();
 
-  $('use-page').addEventListener('click', () => {
+  const useWholePage = () => {
     setSource('page');
     analyzeText(page.pageText, '');
-  });
+  };
+  $('use-page').addEventListener('click', useWholePage);
+  $('empty-page').addEventListener('click', useWholePage);
   $('use-selection').addEventListener('click', async () => {
     try { page = Object.assign(page, await grabPage(tab)); } catch (e) { /* keep old */ }
     if (page.selection && page.selection.length >= MIN_SELECTION) {

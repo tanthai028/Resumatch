@@ -1,29 +1,35 @@
 /* All colors and spacing are tokens so the UI can be restyled (or given a
    dark theme) by editing :root only. Spacing uses a 4px scale. */
 :root {
-  --bg: #f7f7f8;
-  --surface: #ffffff;
-  --text: #1d1d1f;
-  --muted: #6b6b73;
-  --border: #e2e2e6;
-  --track: #e6e6ea;
-  --bar: #adb5bd;
-  --accent: #3b5bdb;
-  --accent-soft: #edf2ff;
-  --focus: #4c6ef5;
+  /* "Paper" theme: warm cream surfaces, ink text, terracotta accent, serif headings. */
+  --bg: #f6f1e7;
+  --surface: #fffdf8;
+  --text: #2b2620;
+  --muted: #6f6455;
+  --border: #e2d8c3;
+  --track: #e8dfcc;
+  --bar: #b8ab95;
+  --accent: #9a4a26;
+  --accent-soft: #f4e4d8;
+  --focus: #9a4a26;
+  --primary: #2b2620;
+  --on-primary: #f6f1e7;
 
-  --green: #2b8a3e;
-  --green-bg: #ebfbee;
-  --green-line: #b2f2bb;
-  --amber: #b35c00;
-  --amber-bg: #fff4e6;
-  --amber-line: #ffd8a8;
-  --red: #c92a2a;
-  --red-bg: #fff5f5;
-  --red-line: #ffc9c9;
-  --grey-bg: #f1f3f5;
-  --grey-line: #dee2e6;
+  /* Status colors are a step stronger than the base paper tones so the
+     verdict still reads at a glance on cream. */
+  --green: #3f5530;
+  --green-bg: #e6eedd;
+  --green-line: #a9bd91;
+  --amber: #7a560f;
+  --amber-bg: #f6e6c4;
+  --amber-line: #d9b46a;
+  --red: #8f2f1c;
+  --red-bg: #f5ddd5;
+  --red-line: #d9a291;
+  --grey-bg: #efe8da;
+  --grey-line: #ddd2bd;
 
+  --serif: Georgia, "Times New Roman", serif;
   --s1: 4px;
   --s2: 8px;
   --s3: 12px;
@@ -47,7 +53,7 @@ body {
   background: var(--bg);
 }
 
-h1 { font-size: 14px; margin: 0; }
+h1 { font: 600 15px/1.2 var(--serif); margin: 0; letter-spacing: -0.01em; }
 
 .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s2); }
 .row { display: flex; align-items: center; gap: var(--s1); }
@@ -68,8 +74,8 @@ button {
   background: var(--surface); color: var(--text); padding: 0 var(--s3); height: 28px; white-space: nowrap;
 }
 button:hover { border-color: var(--accent); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-button.primary:hover { filter: brightness(1.1); }
+button.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: 600; }
+button.primary:hover { background: var(--accent); border-color: var(--accent); }
 button.small { height: 24px; padding: 0 var(--s2); font-size: var(--fs-sm); }
 button.link { border: none; background: none; color: var(--accent); padding: 0; height: auto; }
 button.link:hover { text-decoration: underline; }
@@ -86,13 +92,16 @@ button.link:hover { text-decoration: underline; }
 .muted { color: var(--muted); }
 .small-text { font-size: var(--fs-sm); margin-top: var(--s1); }
 #source-info:empty { display: none; }
-.empty { color: var(--muted); text-align: center; padding: var(--s3) var(--s2); margin: 0; }
+.empty { color: var(--muted); text-align: center; padding: var(--s3) var(--s2) var(--s2); }
+.empty p { margin: 0 0 var(--s3); }
+.empty .primary { width: 100%; }
+#source-info { text-align: center; }
 
 .dup { margin-top: var(--s1); padding: var(--s1) var(--s2); border-radius: var(--radius); background: var(--amber-bg); color: var(--amber); font-size: var(--fs-sm); }
 
 /* Verdict banner: color set by .use / .tailor / .skip */
 .verdict { margin-top: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--radius); border: 1px solid; }
-.verdict-label { font-size: 15px; font-weight: 700; }
+.verdict-label { font: 600 16px/1.25 var(--serif); }
 .verdict-reason { font-size: var(--fs-sm); word-break: break-word; }
 .verdict .primary { width: 100%; margin-top: var(--s2); }
 .verdict.use { background: var(--green-bg); border-color: var(--green-line); color: var(--green); }

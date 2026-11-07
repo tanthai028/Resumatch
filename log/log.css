@@ -1,27 +1,43 @@
+/* "Paper" theme, matching popup/popup.css. */
+:root {
+  --bg: #f6f1e7;
+  --surface: #fffdf8;
+  --text: #2b2620;
+  --muted: #6f6455;
+  --border: #e2d8c3;
+  --row-line: #eee5d4;
+  --head-bg: #f9f4ea;
+  --accent: #9a4a26;
+  --focus: #9a4a26;
+  --red: #8f2f1c;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
 body {
   margin: 0;
   padding: 24px;
   font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #1d1d1f;
-  background: #f7f7f8;
+  color: var(--text);
+  background: var(--bg);
 }
 
 header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-h1 { font-size: 20px; margin: 0; }
+h1 { font: 600 22px/1.2 var(--serif); margin: 0; letter-spacing: -0.01em; }
 .spacer { flex: 1; }
-.muted { color: #6b6b73; }
+.muted { color: var(--muted); }
 
-input, button { font: inherit; padding: 6px 10px; border: 1px solid #e2e2e6; border-radius: 5px; background: #fff; }
+input, button { font: inherit; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
 button { cursor: pointer; }
-button:hover { border-color: #3b5bdb; }
-button.danger { color: #c92a2a; }
-button.danger:hover { border-color: #c92a2a; }
+button:hover { border-color: var(--accent); }
+button.danger { color: var(--red); }
+button.danger:hover { border-color: var(--red); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
-table { width: 100%; margin-top: 12px; border-collapse: collapse; background: #fff; border: 1px solid #e2e2e6; border-radius: 8px; overflow: hidden; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
-th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b6b73; background: #fafafb; }
+table { width: 100%; margin-top: 12px; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--row-line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--head-bg); }
 tr:last-child td { border-bottom: none; }
-td a { color: #3b5bdb; text-decoration: none; }
+td a { color: var(--accent); text-decoration: none; }
 td a:hover { text-decoration: underline; }
 td.num { font-variant-numeric: tabular-nums; }
 td .del { padding: 2px 8px; font-size: 12px; }

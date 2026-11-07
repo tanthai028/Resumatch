@@ -13,8 +13,8 @@
     <button id="open-log" class="link">View log</button>
   </header>
 
-  <!-- Job details (prefilled from the page, editable) -->
-  <section class="job">
+  <!-- Job details (prefilled from the page, editable). Shown once there is a result. -->
+  <section id="job" hidden>
     <div class="row">
       <input id="job-title" class="grow" type="text" placeholder="Job title" aria-label="Job title">
       <input id="job-company" class="company" type="text" placeholder="Company" aria-label="Company">
@@ -23,11 +23,15 @@
       <button id="use-selection" aria-pressed="false">Use selection</button>
       <button id="use-page" aria-pressed="false">Use whole page</button>
     </div>
-    <div id="source-info" class="muted small-text"></div>
-    <div id="dup-warning" class="dup" hidden></div>
   </section>
+  <div id="source-info" class="muted small-text"></div>
+  <div id="dup-warning" class="dup" hidden></div>
 
-  <p id="empty" class="empty">Highlight the job description on the page and reopen this popup, or click <b>Use whole page</b>.</p>
+  <!-- Before any analysis: one instruction, one action. -->
+  <div id="empty" class="empty">
+    <p>Highlight the job description, then reopen this popup.</p>
+    <button id="empty-page" class="primary">Analyze whole page</button>
+  </div>
 
   <!-- Analysis results -->
   <section id="results" hidden>
