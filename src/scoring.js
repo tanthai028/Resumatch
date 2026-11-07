@@ -192,13 +192,19 @@
     found = found.filter((f) => !found.some((o) => o !== f && o.term.length > f.term.length && countTerm(o.term, f.term) > 0));
     found.sort((a, b) => b.count - a.count);
 
+    // matched:     on the top resume or in your skills
+    // missing:     tools/skills you don't have (real gaps, shown in the popup)
+    // notOnResume: words from your other resumes that this one lacks
+    //              (not shown; added to the Claude prompt as things to work in)
     const matched = [];
     const missing = [];
+    const notOnResume = [];
     for (const f of found) {
-      const covered = (topSet.has(f.term) || skillSet.has(f.term)) && !lacking.has(f.term);
-      (covered ? matched : missing).push(f.label);
+      if (lacking.has(f.term)) missing.push(f.label);
+      else if (topSet.has(f.term) || skillSet.has(f.term)) matched.push(f.label);
+      else notOnResume.push(f.label);
     }
-    return { matched, missing };
+    return { matched, missing, notOnResume };
   }
 
   // ---------------------------------------------------------------------------
@@ -272,9 +278,15 @@
       // Value on the same line, or on the next non-empty line ("Locations\nPhoenix, AZ").
       let value = m[1] || '';
       for (let j = i + 1; !value && j < lines.length && j <= i + 3; j++) value = lines[j];
-      if (value) return firstCity(value) || value.slice(0, 60);
+      if (!value) continue;
+      const city = firstCity(value);
+      if (city) return { text: city, isCity: true };
+      if (/multiple|various|several/i.test(value)) return { text: 'Multiple locations', isCity: false };
+      if (/remote/i.test(value)) return { text: 'Remote', isCity: false };
+      return { text: value.split(/[.;|]/)[0].slice(0, 40).trim(), isCity: false };
     }
-    return firstCity(original);
+    const city = firstCity(original);
+    return city ? { text: city, isCity: true } : null;
   }
 
   // Each flag: { type, severity: 'flag' | 'warn' | 'info' | 'plus', text }
@@ -293,10 +305,10 @@
       const quoted = said.length === 1 && said[0] === `${years.required}+ years` ? '' : ` ("${said.join('", "')}")`;
       const msg = `Requires ${years.required}+ years${quoted}; you have ~${exp}`;
       if (facts.yearsGap > T.flagYearsGap) flags.push({ type: 'years', severity: 'flag', text: msg });
-      else flags.push({ type: 'years', severity: 'info', text: msg + ' — OK' });
+      else flags.push({ type: 'years', severity: 'info', text: `${years.required}+ yrs ✓` });
     }
     if (years.preferred !== null && (years.required === null || years.preferred > years.required)) {
-      flags.push({ type: 'years', severity: 'info', text: `Prefers ${years.preferred}+ years (not required)` });
+      flags.push({ type: 'years', severity: 'info', text: `Prefers ${years.preferred}+ yrs` });
     }
 
     // 2. Seniority words in the title.
@@ -356,28 +368,33 @@
     const citizen = /\b(?:u\.?s\.? citizen(?:ship)?|united states citizen(?:ship)?|citizenship (?:is )?required|u\.?s\.? persons?|itar|export[\s-]controll?ed)\b/.exec(normText);
     if (citizen) {
       const sev = config.candidate.usCitizen ? 'plus' : 'flag';
-      flags.push({ type: 'citizenship', severity: sev, text: config.candidate.usCitizen ? 'U.S. citizenship/ITAR requirement — you qualify' : 'U.S. citizenship required' });
+      flags.push({ type: 'citizenship', severity: sev, text: config.candidate.usCitizen ? 'U.S. citizen ✓' : 'U.S. citizenship required' });
     }
-    const sponsor = /\b(?:sponsor(?:ship)?|visa|work authorization|authorized to work)\b/.exec(normText);
-    if (sponsor) flags.push({ type: 'sponsorship', severity: 'info', text: 'Mentions sponsorship/work authorization — fine for you' });
+    // Sponsorship/visa text is not reported: it never matters for a U.S. citizen.
+    if (!config.candidate.usCitizen && /\b(?:no|not|unable to)\b[^.]{0,40}\bsponsor/.test(normText)) {
+      flags.push({ type: 'sponsorship', severity: 'flag', text: 'No visa sponsorship' });
+    }
 
-    // 5. Work arrangement and location.
+    // 5. Work arrangement and location (short: shown on one summary line).
     const days = /\b(\d|one|two|three|four|five)(?:\s*\(\d\))?\s*days?\s*(?:a|per|\/|each|of the)?\s*week\b/.exec(normText);
+    const hybrid = /\bhybrid\b/.test(normText);
     const arrangement = [];
-    if (/\bhybrid\b/.test(normText)) arrangement.push('hybrid');
-    if (/\b(?:on[\s-]?site|in[\s-]office|in[\s-]person|in the office)\b/.test(normText)) arrangement.push('on-site/in-office');
-    if (/\b(?:fully remote|100% remote|remote)\b/.test(normText)) arrangement.push('remote mentioned');
-    if (days) arrangement.push(`${toNum(days[1])} days/week mentioned`);
-    if (arrangement.length) flags.push({ type: 'arrangement', severity: 'info', text: 'Work arrangement: ' + arrangement.join('; ') });
+    if (hybrid) arrangement.push('Hybrid');
+    else if (/\b(?:on[\s-]?site|in[\s-]office|in[\s-]person|in the office)\b/.test(normText)) arrangement.push('On-site');
+    if (/\b(?:fully remote|100% remote|remote)\b/.test(normText)) arrangement.push('Remote mentioned');
+    if (days) arrangement.push(`${toNum(days[1])} days/wk in office`);
+    if (arrangement.length) flags.push({ type: 'arrangement', severity: 'info', text: arrangement.join(', ') });
 
     const location = findLocation(String(job.text || ''));
     if (location) {
       const near = config.candidate.nearbyAreas.map((a) => a.toLowerCase());
-      const local = near.some((a) => location.toLowerCase().includes(a));
+      const local = near.some((a) => location.text.toLowerCase().includes(a));
+      // Only warn when we found a real "City, ST" that is far away.
+      const far = location.isCity && !local;
       flags.push({
         type: 'location',
-        severity: local ? 'info' : 'warn',
-        text: `Location: ${location}` + (local ? '' : ` — not near ${config.candidate.location}`)
+        severity: far ? 'warn' : 'info',
+        text: far ? `${location.text} — not near ${config.candidate.location}` : location.text
       });
     }
 
@@ -405,7 +422,7 @@
     if (top.score - second.score <= T.closeScoreGap) {
       return { type: 'tailor', label: 'Tailor on Claude', reasons: [`${top.name} (${top.score}) and ${second.name} (${second.score}) are within ${T.closeScoreGap} points`] };
     }
-    return { type: 'use', label: `Use ${top.name}`, reasons: [`${top.name} leads by ${top.score - second.score} points`] };
+    return { type: 'use', label: `Use ${top.name}`, reasons: [`Attach ${top.filename} · ${top.score - second.score} pts ahead of ${second.name}`] };
   }
 
   // ---------------------------------------------------------------------------
@@ -431,7 +448,7 @@
     const { flags, facts } = findRedFlags(job, normText, sections, config, canon);
     const verdict = decideVerdict(scores, facts, config);
 
-    return { scores, top, verdict, matched: keywords.matched, missing: keywords.missing, flags, facts, foundRequiredSection: sections.foundRequired };
+    return { scores, top, verdict, matched: keywords.matched, missing: keywords.missing, notOnResume: keywords.notOnResume, flags, facts, foundRequiredSection: sections.foundRequired };
   }
 
   // Fill config.claudePromptTemplate for the "Tailor on Claude" button.
@@ -440,7 +457,10 @@
     // Function replacers so "$" in the job text (salaries) is inserted literally.
     return config.claudePromptTemplate
       .replace('{resume}', () => result.top.name)
-      .replace('{missing}', () => (result.missing.length ? result.missing.join(', ') : 'none found'))
+      .replace('{missing}', () => {
+        const all = [...result.missing, ...(result.notOnResume || [])];
+        return all.length ? all.join(', ') : 'none found';
+      })
       .replace('{flags}', () => (serious.length ? serious.join('; ') : 'none'))
       .replace('{jobText}', () => String(jobText || '').trim());
   }

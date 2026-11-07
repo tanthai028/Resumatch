@@ -41,10 +41,15 @@
 
     <ul id="scores" class="scores"></ul>
 
-    <div class="kw-row"><span class="kw-label ok">Matched</span><div id="matched" class="chips"></div></div>
-    <div class="kw-row"><span class="kw-label bad">Missing</span><div id="missing" class="chips"></div></div>
+    <!-- Only real gaps get chips; matched keywords are a count (hover for the list). -->
+    <div class="kw-row">
+      <span class="kw-label bad" title="Tools/skills the posting asks for that you don't list. Red: required tool (counts toward skip). Amber: required but learnable. Grey: preferred or just mentioned.">Gaps</span>
+      <div id="missing" class="chips"></div>
+      <span id="matched-count" class="matched-count"></span>
+    </div>
 
     <ul id="flags" class="flags"></ul>
+    <div id="meta" class="meta"></div>
 
     <div class="row log-row">
       <select id="resume-used" class="grow" title="Resume used"></select>

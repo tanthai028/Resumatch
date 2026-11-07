@@ -49,9 +49,23 @@ async function grabPage(tab) {
 }
 
 // Best-effort job title: the page's <h1>, else og:title, else the tab title.
-function guessTitle(p) {
+function rawTitle(p) {
   if (p.h1 && p.h1.length >= 3 && p.h1.length <= 120) return p.h1;
   return p.ogTitle || p.docTitle || '';
+}
+
+// Oracle Cloud career sites title postings "Company Words – Job Title".
+function isOracleCloud(p) {
+  try { return /oraclecloud\.com$/.test(new URL(p.url).hostname); } catch (e) { return false; }
+}
+function splitOracleTitle(p) {
+  const parts = rawTitle(p).split(/\s[–—-]\s/);
+  return parts.length >= 2 ? { company: parts[0].replace(/\s+early career$/i, '').trim(), title: parts.slice(1).join(' - ').trim() } : null;
+}
+
+function guessTitle(p) {
+  const split = isOracleCloud(p) && splitOracleTitle(p);
+  return split ? split.title : rawTitle(p);
 }
 
 // Best-effort company name from the site; always editable in the popup.
@@ -62,6 +76,10 @@ function guessCompany(p) {
   const firstPath = url.pathname.split('/').filter(Boolean)[0] || '';
   const pretty = (s) => s.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+  if (isOracleCloud(p)) {
+    const split = splitOracleTitle(p);
+    if (split) return split.company;
+  }
   if (/myworkdayjobs\.com$/.test(host)) return pretty(host.split('.')[0]);
   if (/(greenhouse\.io|lever\.co|ashbyhq\.com)$/.test(host) && firstPath) return pretty(firstPath);
   // Job boards: titles usually look like "Title | Company | LinkedIn" or "Title - Company - Indeed".
@@ -123,17 +141,29 @@ function render() {
     list.append(li);
   });
 
-  // Keywords for the top pick (capped so the popup doesn't need to scroll)
-  renderChips($('matched'), result.matched, 10);
+  // Gaps get chips colored by how much they matter; matched keywords are just a count.
   renderChips($('missing'), result.missing, 8);
+  const core = new Set(result.facts.missingRequiredTools);
+  const soft = new Set([...result.facts.missingMinorTools, ...result.facts.missingRequiredSkills]);
+  for (const chip of $('missing').querySelectorAll('.chip:not(.more)')) {
+    const t = chip.textContent;
+    chip.classList.add(core.has(t) ? 'core' : soft.has(t) ? 'soft' : 'mention');
+    chip.title = core.has(t) ? 'Required tool (counts toward skip)' : soft.has(t) ? 'Required, but learnable' : 'Mentioned or preferred, not required';
+  }
+  const mc = $('matched-count');
+  mc.textContent = `${result.matched.length} matched`;
+  mc.title = result.matched.join(', ') || 'None';
 
-  // Red flags, most serious first
-  const order = { flag: 0, warn: 1, plus: 2, info: 3 };
+  // Red flags and warnings, most serious first; neutral facts go on one grey line.
   const flags = $('flags');
   flags.replaceChildren();
-  if (!result.flags.length) flags.append(el('li', { className: 'info' }, 'No red flags found.'));
-  [...result.flags].sort((a, b) => order[a.severity] - order[b.severity])
+  // Tool/skill flags are skipped here: the Gaps chips already show them.
+  const inChips = new Set(['tools', 'minor-tools', 'skills', 'preferred']);
+  const serious = result.flags.filter((f) => (f.severity === 'flag' || f.severity === 'warn') && !inChips.has(f.type));
+  [...serious].sort((a, b) => (a.severity === 'flag' ? 0 : 1) - (b.severity === 'flag' ? 0 : 1))
     .forEach((f) => flags.append(el('li', { className: f.severity }, f.text)));
+  const facts = result.flags.filter((f) => (f.severity === 'info' || f.severity === 'plus') && !inChips.has(f.type)).map((f) => f.text);
+  $('meta').textContent = (serious.length ? '' : 'No red flags · ') + facts.join(' · ');
 
   // Default "resume used" for the log
   const sel = $('resume-used');
@@ -164,7 +194,10 @@ function analyzeText(text, sourceLabel) {
     $('empty').hidden = false;
     return;
   }
-  if (sourceLabel) $('source-info').textContent = `${sourceLabel} (${jobText.length.toLocaleString()} chars)`;
+  if (sourceLabel) {
+    $('source-info').textContent = sourceLabel;
+    $('source-info').title = `${jobText.length.toLocaleString()} characters analyzed`;
+  }
   result = ResumeScoring.analyze({ text: jobText, title: $('job-title').value, company: $('job-company').value, url: page.url }, config);
   render();
 }
@@ -251,7 +284,7 @@ async function init() {
   if (page.selection && page.selection.length >= MIN_SELECTION) analyzeText(page.selection, 'Using highlighted text');
   checkDuplicates();
 
-  $('use-page').addEventListener('click', () => analyzeText(page.pageText, 'Using whole page'));
+  $('use-page').addEventListener('click', () => analyzeText(page.pageText, 'Whole page: highlight the description for cleaner results'));
   $('use-selection').addEventListener('click', async () => {
     try { page = Object.assign(page, await grabPage(tab)); } catch (e) { /* keep old */ }
     if (page.selection && page.selection.length >= MIN_SELECTION) analyzeText(page.selection, 'Using highlighted text');

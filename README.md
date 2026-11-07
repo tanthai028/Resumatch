@@ -53,7 +53,7 @@ Red flags:
 | `trackedSkills` (e.g. vendor management) asked for and not in your skills | Warning only |
 | Security clearance | Flag |
 | U.S. citizenship / ITAR | Shown as a plus |
-| Sponsorship, hybrid/on-site/remote, days per week | Info |
+| Hybrid/on-site/remote, days per week | Info (sponsorship text is ignored for U.S. citizens) |
 | Location outside `nearbyAreas` (a "Location:" line wins, else the first "City, ST") | Warning |
 
 The required section is found from headings such as "Qualifications", "Requirements" and

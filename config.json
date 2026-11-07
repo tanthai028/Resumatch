@@ -222,7 +222,7 @@
   ],
 
   "_minorTools": "Everyday/learnable tools. If required and NOT in candidate.skills they show an amber warning but do NOT count toward 'Likely skip'.",
-  "minorTools": ["Excel", "Visio", "SharePoint", "Workday", "Smartsheet", "Confluence", "PowerPoint", "Microsoft Teams"],
+  "minorTools": ["Excel", "Visio", "SharePoint", "Workday", "Smartsheet", "Confluence", "PowerPoint"],
 
   "_trackedSkills": "Experience areas (not tools). Flagged when required but NOT in candidate.skills; they do NOT count toward 'Likely skip'.",
   "trackedSkills": [
