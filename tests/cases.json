@@ -1,0 +1,55 @@
+[
+  {
+    "id": 1,
+    "file": "01-raymond-james-application-support-analyst.txt",
+    "company": "Raymond James",
+    "title": "Application Support Analyst",
+    "expectResume": "Tech Support",
+    "expectFlags": ["3+ years", "Splunk", "Dynatrace"]
+  },
+  {
+    "id": 2,
+    "file": "02-raymond-james-associate-analyst-end-user-support.txt",
+    "company": "Raymond James",
+    "title": "Associate Analyst, End User Support",
+    "expectResume": "IT Support"
+  },
+  {
+    "id": 3,
+    "file": "03-raymond-james-desktop-support-associate-analyst.txt",
+    "company": "Raymond James",
+    "title": "Desktop Support Associate Analyst",
+    "expectResume": "IT Support"
+  },
+  {
+    "id": 4,
+    "file": "04-handshake-ai-software-engineer-ai-training.txt",
+    "company": "Handshake AI",
+    "title": "Software Engineer (AI training)",
+    "expectResume": "Software"
+  },
+  {
+    "id": 5,
+    "file": "05-raymond-james-ai-business-engineer.txt",
+    "company": "Raymond James",
+    "title": "AI Business Engineer",
+    "expectResume": "Business Analyst",
+    "expectFlags": ["Excel", "vendor management"]
+  },
+  {
+    "id": 6,
+    "file": "06-raymond-james-senior-data-integration-administrator.txt",
+    "company": "Raymond James",
+    "title": "Senior Data Integration Administrator",
+    "expectVerdict": "skip",
+    "expectFlags": ["Senior", "3+ years", "ODI", "Ab Initio", "WebLogic"]
+  },
+  {
+    "id": 7,
+    "file": "07-honeywell-aerospace-it-analyst-early-career.txt",
+    "company": "Honeywell Aerospace",
+    "title": "IT Analyst (Early Career)",
+    "expectResume": "Business Analyst",
+    "notResume": "IT Support"
+  }
+]

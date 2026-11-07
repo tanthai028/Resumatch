@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Resume Matcher",
+  "version": "0.1.0",
+  "description": "Picks which of your resumes fits a job posting, flags dealbreakers, and logs applications. Runs fully offline.",
+  "permissions": ["activeTab", "scripting", "storage", "clipboardWrite"],
+  "action": {
+    "default_title": "Match this job to a resume",
+    "default_popup": "popup/popup.html"
+  }
+}

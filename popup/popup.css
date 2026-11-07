@@ -1,0 +1,101 @@
+:root {
+  --bg: #f7f7f8;
+  --card: #ffffff;
+  --text: #1d1d1f;
+  --muted: #6b6b73;
+  --border: #e2e2e6;
+  --accent: #3b5bdb;
+  --green: #2b8a3e;
+  --green-bg: #ebfbee;
+  --amber: #b35c00;
+  --amber-bg: #fff4e6;
+  --red: #c92a2a;
+  --red-bg: #fff5f5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  width: 400px;
+  margin: 0;
+  padding: 12px;
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1 { font-size: 15px; margin: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 6px; }
+h3 { font-size: 12px; margin: 8px 0 4px; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+
+label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+input, select, textarea {
+  display: block; width: 100%; margin-top: 2px; padding: 5px 7px;
+  font: inherit; color: var(--text); border: 1px solid var(--border); border-radius: 5px; background: #fff;
+}
+textarea { resize: vertical; font-size: 12px; }
+
+button {
+  font: inherit; cursor: pointer; border: 1px solid var(--border); border-radius: 5px;
+  background: #fff; color: var(--text); padding: 6px 10px;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.primary:hover { filter: brightness(1.1); }
+button.small { padding: 3px 8px; font-size: 12px; }
+button.link { border: none; background: none; color: var(--accent); padding: 0; }
+button.link:hover { text-decoration: underline; }
+
+.source-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.source-row button { white-space: nowrap; }
+#source-info { flex-basis: 100%; order: 2; font-size: 12px; }
+.spacer { flex: 1; }
+.muted { color: var(--muted); }
+.small-text { font-size: 11px; margin-top: 4px; }
+.empty { color: var(--muted); text-align: center; padding: 18px 8px; }
+
+.dup { margin-top: 8px; padding: 6px 8px; border-radius: 5px; background: var(--amber-bg); color: var(--amber); font-size: 12px; }
+
+/* Verdict banner: color set by .use / .tailor / .skip */
+.verdict { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid; }
+.verdict-label { font-size: 17px; font-weight: 700; }
+.verdict-reason { font-size: 12px; margin: 2px 0 6px; }
+.verdict.use { background: var(--green-bg); border-color: #b2f2bb; color: var(--green); }
+.verdict.tailor { background: var(--amber-bg); border-color: #ffd8a8; color: var(--amber); }
+.verdict.skip { background: var(--red-bg); border-color: #ffc9c9; color: var(--red); }
+.verdict .primary { margin-top: 4px; }
+
+/* Score bars */
+.scores { list-style: none; margin: 0; padding: 0; }
+.scores li { display: grid; grid-template-columns: 110px 1fr 28px; align-items: center; gap: 8px; padding: 3px 0; }
+.scores .bar { height: 8px; background: #ececf0; border-radius: 4px; overflow: hidden; }
+.scores .fill { height: 100%; background: #adb5bd; }
+.scores li.top { font-weight: 700; }
+.scores li.top .fill { background: var(--accent); }
+.scores .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Keyword chips */
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { padding: 1px 7px; border-radius: 10px; font-size: 11px; border: 1px solid; }
+#matched .chip { background: var(--green-bg); border-color: #b2f2bb; color: var(--green); }
+#missing .chip { background: var(--red-bg); border-color: #ffc9c9; color: var(--red); }
+.none { color: var(--muted); font-size: 12px; }
+
+/* Red flags */
+.flags { list-style: none; margin: 0; padding: 0; }
+.flags li { padding: 5px 8px; margin-bottom: 4px; border-radius: 5px; font-size: 12px; border-left: 3px solid; word-break: break-word; }
+.flags li.flag { background: var(--red-bg); border-color: var(--red); }
+.flags li.warn { background: var(--amber-bg); border-color: var(--amber); }
+.flags li.info { background: #f1f3f5; border-color: #adb5bd; }
+.flags li.plus { background: var(--green-bg); border-color: var(--green); }
+
+.log-box { margin-top: 14px; }
+.log-box .primary { width: 100%; }
+
+details { margin-top: 12px; }
+summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+details textarea { margin: 6px 0; }

@@ -1,0 +1,27 @@
+body {
+  margin: 0;
+  padding: 24px;
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1d1d1f;
+  background: #f7f7f8;
+}
+
+header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+h1 { font-size: 20px; margin: 0; }
+.spacer { flex: 1; }
+.muted { color: #6b6b73; }
+
+input, button { font: inherit; padding: 6px 10px; border: 1px solid #e2e2e6; border-radius: 5px; background: #fff; }
+button { cursor: pointer; }
+button:hover { border-color: #3b5bdb; }
+button.danger { color: #c92a2a; }
+button.danger:hover { border-color: #c92a2a; }
+
+table { width: 100%; margin-top: 12px; border-collapse: collapse; background: #fff; border: 1px solid #e2e2e6; border-radius: 8px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b6b73; background: #fafafb; }
+tr:last-child td { border-bottom: none; }
+td a { color: #3b5bdb; text-decoration: none; }
+td a:hover { text-decoration: underline; }
+td.num { font-variant-numeric: tabular-nums; }
+td .del { padding: 2px 8px; font-size: 12px; }

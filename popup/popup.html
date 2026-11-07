@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Resume Matcher</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Resume Matcher</h1>
+    <button id="open-log" class="link">View log</button>
+  </header>
+
+  <!-- Job details (prefilled from the page, editable) -->
+  <section class="card job">
+    <label>Title <input id="job-title" type="text" placeholder="Job title"></label>
+    <label>Company <input id="job-company" type="text" placeholder="Company"></label>
+    <div class="source-row">
+      <span id="source-info" class="muted"></span>
+      <span class="spacer"></span>
+      <button id="use-selection" class="small">Use selection</button>
+      <button id="use-page" class="small">Use whole page</button>
+    </div>
+    <div id="dup-warning" class="dup" hidden></div>
+  </section>
+
+  <p id="empty" class="empty">Highlight the job description on the page and reopen this popup, or click <b>Use whole page</b>.</p>
+
+  <!-- Analysis results -->
+  <section id="results" hidden>
+    <div id="verdict" class="verdict">
+      <div id="verdict-label" class="verdict-label"></div>
+      <div id="verdict-reason" class="verdict-reason"></div>
+      <button id="tailor" class="primary" hidden>Copy prompt &amp; open Claude</button>
+      <div id="tailor-status" class="muted small-text"></div>
+    </div>
+
+    <h2>Fit scores</h2>
+    <ul id="scores" class="scores"></ul>
+
+    <h2>Keywords for <span id="kw-resume"></span></h2>
+    <h3>Matched</h3>
+    <div id="matched" class="chips"></div>
+    <h3>Missing</h3>
+    <div id="missing" class="chips"></div>
+
+    <h2>Red flags</h2>
+    <ul id="flags" class="flags"></ul>
+
+    <section class="card log-box">
+      <label>Resume used <select id="resume-used"></select></label>
+      <button id="log-btn" class="primary">Log this application</button>
+      <div id="log-status" class="muted small-text"></div>
+    </section>
+  </section>
+
+  <!-- Raw text: lets you fix a bad capture or paste text when the page can't be read -->
+  <details id="text-box">
+    <summary>Job text (edit or paste, then Re-analyze)</summary>
+    <textarea id="job-text" rows="8" placeholder="Paste the job description here"></textarea>
+    <button id="reanalyze" class="small">Re-analyze</button>
+  </details>
+
+  <script src="../src/scoring.js"></script>
+  <script src="../src/log-store.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

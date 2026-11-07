@@ -1,0 +1,253 @@
+{
+  "_readme": "Edit this file to tune matching. Keywords are case-insensitive. Each keyword maps to a weight (points earned when it appears in the job text). titleKeywords are job-type phrases (weighted higher, and they also earn jobTitleBonus when found in the posting's title). bodyKeywords are skills/duties. After editing, reopen the popup (or click the reload icon in chrome://extensions) and run `node tests/run-tests.js`.",
+
+  "resumes": [
+    {
+      "id": "software",
+      "name": "Software",
+      "filename": "Tan_Thai_Resume_Software.pdf",
+      "titleKeywords": {
+        "software engineer": 3,
+        "software developer": 3,
+        "developer": 3,
+        "backend": 3,
+        "devops": 3,
+        "platform engineer": 3,
+        "build engineer": 3,
+        "release engineer": 3,
+        "cloud engineer": 3
+      },
+      "bodyKeywords": {
+        "cloud": 1.5,
+        "platform": 1,
+        "build": 1,
+        "release": 1,
+        "ci/cd": 2,
+        "jenkins": 2,
+        "aws": 2,
+        "terraform": 2,
+        "java": 2,
+        "python": 2,
+        "api": 1.5,
+        "microservices": 2,
+        "distributed": 1.5,
+        "infrastructure": 1.5,
+        "code review": 2,
+        "ai training": 2.5,
+        "model evaluation": 2.5,
+        "software development": 2,
+        "coding": 2,
+        "programming": 2,
+        "unit test": 1.5,
+        "git": 1,
+        "javascript": 1.5,
+        "llm": 2,
+        "machine learning": 1.5
+      }
+    },
+    {
+      "id": "tech-support",
+      "name": "Tech Support",
+      "filename": "Tan_Thai_Resume_Tech_Support.pdf",
+      "titleKeywords": {
+        "application support": 3,
+        "production support": 3,
+        "systems analyst": 3,
+        "support analyst": 3,
+        "support engineer": 3
+      },
+      "bodyKeywords": {
+        "incident": 2,
+        "troubleshooting": 1.5,
+        "root cause": 2,
+        "sql": 1.5,
+        "monitoring": 2,
+        "alerting": 2,
+        "triage": 2,
+        "escalation": 1.5,
+        "logs": 1.5,
+        "integration": 1,
+        "etl": 1.5,
+        "on-call": 2,
+        "itil": 1.5,
+        "servicenow": 1.5,
+        "batch": 1.5,
+        "outage": 2,
+        "problem management": 2,
+        "splunk": 1,
+        "dynatrace": 1,
+        "sla": 1
+      }
+    },
+    {
+      "id": "it-support",
+      "name": "IT Support",
+      "filename": "Tan_Thai_Resume_IT_Support.pdf",
+      "titleKeywords": {
+        "help desk": 3,
+        "service desk": 3,
+        "desktop support": 3,
+        "end user": 3,
+        "technician": 3
+      },
+      "bodyKeywords": {
+        "windows": 1.5,
+        "hardware": 2,
+        "imaging": 2,
+        "active directory": 2,
+        "office 365": 2,
+        "tickets": 1.5,
+        "tier 1": 2,
+        "tier 2": 2,
+        "peripherals": 2,
+        "onboarding": 1.5,
+        "laptops": 2,
+        "printers": 2,
+        "mobile devices": 1.5,
+        "password resets": 2,
+        "deskside": 2,
+        "workstations": 2,
+        "remote support": 1.5,
+        "vpn": 1,
+        "sccm": 1.5,
+        "intune": 1.5,
+        "asset management": 1.5,
+        "walk-up": 2
+      }
+    },
+    {
+      "id": "business-analyst",
+      "name": "Business Analyst",
+      "filename": "Tan_Thai_Resume_Business_Analyst.pdf",
+      "titleKeywords": {
+        "business analyst": 3,
+        "it analyst": 3,
+        "technology analyst": 3,
+        "business engineer": 3,
+        "digital transformation": 3
+      },
+      "bodyKeywords": {
+        "automation": 2,
+        "process improvement": 2,
+        "requirements gathering": 2,
+        "business requirements": 2,
+        "stakeholders": 2,
+        "dashboards": 2,
+        "reporting": 1.5,
+        "power bi": 2,
+        "tableau": 2,
+        "excel": 1.5,
+        "project management": 2,
+        "agile": 1,
+        "jira": 1,
+        "presentations": 1.5,
+        "change management": 2,
+        "innovation": 2,
+        "prototyping": 2,
+        "business processes": 2,
+        "workflows": 1.5,
+        "user stories": 1.5,
+        "kpis": 1.5,
+        "data analysis": 1.5,
+        "power automate": 2,
+        "low-code": 2,
+        "copilot": 1.5,
+        "generative ai": 1.5,
+        "vendor management": 1
+      }
+    }
+  ],
+
+  "candidate": {
+    "name": "Tan Thai",
+    "_experienceYears": "~10 months of internships = 0.83 years. Used for the years-of-experience red flag.",
+    "experienceYears": 0.83,
+    "degree": "B.S. Computer Science, May 2024",
+    "usCitizen": true,
+    "location": "St. Petersburg, FL",
+    "_nearbyAreas": "If a posting's location contains any of these, it is treated as local.",
+    "nearbyAreas": ["St. Petersburg", "St Petersburg", "Tampa", "Clearwater", "Largo", "Pinellas", "Brandon", "Pinellas Park", "Seminole", "Remote"],
+    "_skills": "Skills Tan actually has. Drives matched/missing keywords and missing-required-tool flags.",
+    "skills": [
+      "Python", "Java", "JavaScript", "C#", "SQL", "DXL", "HTML", "CSS", "React", "Node.js",
+      "Electron", ".NET", "SQLite", "Git", "GitHub Actions", "Jenkins", "CI/CD", "AWS", "EC2", "RDS",
+      "Terraform", "Postman", "Jest", "MSTest", "Agile", "Scrum", "UML", "troubleshooting",
+      "root cause analysis", "technical documentation", "documentation", "data visualization", "automation"
+    ]
+  },
+
+  "_synonyms": "Canonical term -> variants. Variants in job text are rewritten to the canonical term before matching.",
+  "synonyms": {
+    "AWS": ["amazon web services"],
+    "CI/CD": ["continuous integration", "continuous delivery", "continuous deployment", "ci-cd", "ci / cd"],
+    "SQL": ["ms sql", "mssql", "sql server", "t-sql", "tsql", "pl/sql", "mysql", "postgresql", "postgres"],
+    "Node.js": ["nodejs", "node js"],
+    "React": ["reactjs", "react.js"],
+    "C#": ["c sharp"],
+    ".NET": ["dotnet", ".net core", "asp.net"],
+    "JavaScript": ["java script"],
+    "Office 365": ["microsoft 365", "m365", "o365", "office365", "ms office", "microsoft office"],
+    "Power BI": ["powerbi"],
+    "ServiceNow": ["service now"],
+    "help desk": ["helpdesk", "help-desk"],
+    "service desk": ["servicedesk"],
+    "end user": ["end-user"],
+    "on-call": ["on call rotation", "on-call rotation", "after-hours support"],
+    "root cause": ["rca"],
+    "ODI": ["oracle data integrator"],
+    "Excel": ["microsoft excel", "ms excel"],
+    "tier 1": ["level 1", "tier i", "l1 support"],
+    "tier 2": ["level 2", "tier ii", "l2 support"],
+    "troubleshooting": ["troubleshoot", "troubleshoots"],
+    "stakeholders": ["stakeholder"],
+    "requirements gathering": ["gather requirements", "gathering requirements", "requirements elicitation"],
+    "dashboards": ["dashboard"],
+    "unit test": ["unit testing"],
+    "machine learning": ["ml models"],
+    "llm": ["large language model", "large language models", "llms"],
+    "generative ai": ["genai", "gen ai"],
+    "vendor management": ["managing vendors", "manage vendors", "vendor relationships", "vendor relationship management", "vendor oversight", "third-party vendors"],
+    "Agile": ["agile/scrum"],
+    "process improvement": ["process improvements", "continuous improvement"],
+    "kpis": ["kpi", "key performance indicators"]
+  },
+
+  "_trackedTools": "Tools that, if found in a required/minimum qualifications section and NOT in candidate.skills, are red flags that count toward 'Likely skip'.",
+  "trackedTools": [
+    "Splunk", "Dynatrace", "AppDynamics", "Datadog", "New Relic", "Excel", "ODI", "Ab Initio", "WebLogic",
+    "WebSphere", "Informatica", "SSIS", "Talend", "Kubernetes", "Docker", "Azure", "GCP", "Salesforce", "SAP",
+    "Oracle", "Mainframe", "COBOL", "C++", "Ruby", "PHP", "Kotlin", "Swift", "Scala", "Spark", "Hadoop",
+    "Snowflake", "Databricks", "Kafka", "MongoDB", "Angular", "TypeScript", "Ansible", "Puppet", "Visio",
+    "SharePoint", "Workday", "UiPath", "Autosys", "Control-M", "Golang"
+  ],
+
+  "_trackedSkills": "Experience areas (not tools). Flagged when required but NOT in candidate.skills; they do NOT count toward 'Likely skip'.",
+  "trackedSkills": [
+    "vendor management", "people management", "budget management", "Six Sigma", "PMP", "CCNA",
+    "CompTIA", "Security+", "contract negotiation", "team leadership"
+  ],
+
+  "_seniorityWords": "Title words that mean too senior. A match makes the verdict 'Likely skip'.",
+  "seniorityWords": ["Senior", "Sr.", "Sr", "Lead", "Principal", "Staff", "Manager", "Director"],
+
+  "weights": {
+    "_help": "score = min(100, round(100 * rawPoints / fullScoreAt)). Each found keyword earns its weight * (1 + repeatBonus * min(extraOccurrences, maxRepeats)). Title keywords also add jobTitleBonus (once) when found in the posting title, so the title helps but cannot decide alone.",
+    "repeatBonus": 0.25,
+    "maxRepeats": 4,
+    "jobTitleBonus": 4,
+    "fullScoreAt": 28,
+    "_keywordReportMinWeight": "Resume keywords below this weight still score, but are not shown as matched/missing chips (keeps generic words like 'build' out).",
+    "keywordReportMinWeight": 1.5
+  },
+
+  "thresholds": {
+    "_help": "Verdict rules. Years gap = required minimum years - candidate.experienceYears.",
+    "flagYearsGap": 1,
+    "skipYearsGap": 2,
+    "skipMissingRequiredTools": 2,
+    "tailorBelowScore": 45,
+    "closeScoreGap": 8
+  },
+
+  "claudePromptTemplate": "Tailor my {resume} resume for this job. Keep the same formatting, one page, and don't invent experience. Missing keywords to address if truthful: {missing}. Red flags found: {flags}. Job description: {jobText}"
+}
