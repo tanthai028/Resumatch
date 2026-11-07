@@ -249,7 +249,9 @@
     "skipYearsGap": 2,
     "skipMissingRequiredTools": 2,
     "tailorBelowScore": 45,
-    "closeScoreGap": 8
+    "closeScoreGap": 8,
+    "_matchLevels": "Log shows the top score as a match level: High at or above 'high', Medium at or above 'medium', otherwise Low.",
+    "matchLevels": { "high": 70, "medium": 45 }
   },
 
   "claudePromptTemplate": "Tailor my {resume} resume for this job. Keep the same formatting, one page, and don't invent experience. Missing keywords to address if truthful: {missing}. Red flags found: {flags}. Job description: {jobText}"

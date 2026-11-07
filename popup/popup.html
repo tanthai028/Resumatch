@@ -36,7 +36,11 @@
     <!-- Title and company look like text but are editable (used for the log). -->
     <div class="job">
       <input id="job-title" class="inline title" type="text" placeholder="Add job title" aria-label="Job title">
-      <input id="job-company" class="inline company" type="text" placeholder="Add company" aria-label="Company">
+      <div class="row">
+        <input id="job-company" class="inline company grow" type="text" placeholder="Add company" aria-label="Company">
+        <label for="job-id" class="id-label">ID</label>
+        <input id="job-id" class="inline job-id" type="text" placeholder="none found" aria-label="Job ID or requisition number">
+      </div>
     </div>
 
     <div id="verdict" class="verdict">
@@ -48,7 +52,7 @@
     <ul id="scores" class="scores" aria-label="Fit score per resume, out of 100"></ul>
 
     <div id="gaps-row" class="kw-row">
-      <button id="gaps-help" class="kw-label link" aria-expanded="false" aria-controls="gaps-legend">Gaps<sup>?</sup></button>
+      <button id="gaps-help" class="kw-label link" aria-expanded="false" aria-controls="gaps-legend">Gaps <span class="q" aria-hidden="true">?</span></button>
       <div id="missing" class="chips"></div>
     </div>
     <div id="gaps-legend" class="legend" hidden>
@@ -60,7 +64,7 @@
     <ul id="flags" class="flags"></ul>
 
     <div class="row log-row">
-      <label for="resume-used" class="log-label">Sent</label>
+      <label for="resume-used" class="log-label">Resume used</label>
       <select id="resume-used" class="grow"></select>
       <button id="log-btn" class="primary">Log it</button>
     </div>

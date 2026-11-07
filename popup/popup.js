@@ -105,16 +105,33 @@ function el(tag, attrs, text) {
   return e;
 }
 
-// Shows the first `max` chips; the rest collapse into a "+N" button that
-// expands in place. classOf(item) returns an extra CSS class for each chip.
-function renderChips(container, items, max, classOf) {
+// Renders chips on one straight row; chips that don't fit fold into a "+N"
+// button, and clicking it lets the row wrap to show them all.
+// classOf(item) returns an extra CSS class for each chip.
+function renderChipRow(container, items, classOf) {
+  container.classList.remove('expanded');
   container.replaceChildren();
   const chip = (item) => el('span', { className: 'chip ' + (classOf ? classOf(item) : '') }, item);
-  items.slice(0, max).forEach((item) => container.append(chip(item)));
-  if (items.length > max) {
-    const more = el('button', { className: 'chip more' }, `+${items.length - max}`);
-    more.addEventListener('click', () => more.replaceWith(...items.slice(max).map(chip)));
-    container.append(more);
+  const chips = items.map(chip);
+  container.append(...chips);
+
+  // Measure children (scrollWidth can't see overflow on a right-aligned row).
+  const gap = parseFloat(getComputedStyle(container).columnGap) || 0;
+  const width = (nodes) => nodes.reduce((w, n) => w + n.offsetWidth, 0) + gap * Math.max(0, nodes.length - 1);
+  if (width(chips) <= container.clientWidth) return;
+
+  const more = el('button', { className: 'chip more' });
+  more.addEventListener('click', () => {
+    container.classList.add('expanded');
+    more.replaceWith(...chips.slice(container.children.length - 1));
+  });
+  container.append(more);
+  let visible = chips.length;
+  while (visible > 1) {
+    visible--;
+    chips[visible].remove();
+    more.textContent = `+${chips.length - visible}`;
+    if (width([...chips.slice(0, visible), more]) <= container.clientWidth) break;
   }
 }
 
@@ -144,13 +161,23 @@ function renderSource() {
 function render() {
   showScreen('results');
 
-  // Verdict. "Use" needs no explanation; tailor/skip say why in one line.
+  // Verdict, with the match level; tailor/skip also say why in one line.
   const v = result.verdict;
+  const level = ResumeScoring.matchLevel(result.top.score, config);
   $('verdict').className = 'verdict ' + v.type;
   $('verdict-label').textContent = v.label;
-  const reason = v.type === 'tailor' ? v.reasons[0] : v.type === 'skip' ? 'Reason: ' + v.reasons.join(', ') + '.' : '';
-  $('verdict-reason').textContent = reason;
-  $('verdict-reason').hidden = !reason;
+  // Dealbreakers and warnings only; tool/skill gaps are already chips.
+  const inChips = new Set(['tools', 'minor-tools', 'skills', 'preferred']);
+  const shownFlags = result.flags
+    .filter((f) => (f.severity === 'flag' || f.severity === 'warn') && !inChips.has(f.type))
+    .sort((a, b) => (a.severity === 'flag' ? 0 : 1) - (b.severity === 'flag' ? 0 : 1));
+  const redCount = shownFlags.filter((f) => f.severity === 'flag').length;
+
+  // A green "Use" must not hide red flags below it, so the reason points at them.
+  const why = v.type === 'tailor' ? ' ' + v.reasons[0]
+    : v.type === 'skip' ? ' Reason: ' + v.reasons.join(', ') + '.'
+    : redCount ? ` But check the ${redCount === 1 ? 'flag' : redCount + ' flags'} below.` : '';
+  $('verdict-reason').textContent = `${level} match.${why}`;
   $('tailor').hidden = v.type !== 'tailor';
   $('tailor').textContent = 'Copy prompt and open Claude';
 
@@ -158,7 +185,7 @@ function render() {
   const list = $('scores');
   list.replaceChildren();
   result.scores.forEach((s, i) => {
-    const li = el('li', { className: i === 0 ? 'top' : '' });
+    const li = el('li', { className: i === 0 ? 'top ' + level.toLowerCase() : '' });
     const bar = el('div', { className: 'bar' });
     const fill = el('div', { className: 'fill' });
     fill.style.width = s.score + '%';
@@ -167,21 +194,20 @@ function render() {
     list.append(li);
   });
 
-  // Gaps: hidden entirely when there are none.
+  // Gaps: hidden entirely when there are none. Most serious first, so the
+  // chips that stay visible on the single row are the ones that matter.
   const core = new Set(result.facts.missingRequiredTools);
   const soft = new Set([...result.facts.missingMinorTools, ...result.facts.missingRequiredSkills]);
-  $('gaps-row').hidden = !result.missing.length;
-  if (!result.missing.length) $('gaps-legend').hidden = true;
-  renderChips($('missing'), result.missing, 6, (t) => (core.has(t) ? 'core' : soft.has(t) ? 'soft' : 'mention'));
+  const kind = (t) => (core.has(t) ? 'core' : soft.has(t) ? 'soft' : 'mention');
+  const rank = { core: 0, soft: 1, mention: 2 };
+  const gaps = [...result.missing].sort((a, b) => rank[kind(a)] - rank[kind(b)]);
+  $('gaps-row').hidden = !gaps.length;
+  if (!gaps.length) $('gaps-legend').hidden = true;
+  renderChipRow($('missing'), gaps, kind);
 
-  // Dealbreakers and warnings only; tool/skill gaps are already chips.
   const flags = $('flags');
   flags.replaceChildren();
-  const inChips = new Set(['tools', 'minor-tools', 'skills', 'preferred']);
-  result.flags
-    .filter((f) => (f.severity === 'flag' || f.severity === 'warn') && !inChips.has(f.type))
-    .sort((a, b) => (a.severity === 'flag' ? 0 : 1) - (b.severity === 'flag' ? 0 : 1))
-    .forEach((f) => flags.append(el('li', { className: f.severity }, f.text)));
+  shownFlags.forEach((f) => flags.append(el('li', { className: f.severity }, f.text)));
 
   // Default "resume used" for the log.
   $('resume-used').value = v.type === 'tailor' ? 'Tailored (based on ' + result.top.name + ')' : result.top.name;
@@ -194,8 +220,9 @@ function fillResumeSelect() {
   sel.replaceChildren();
   for (const r of config.resumes) sel.append(el('option', { value: r.name }, r.name));
   for (const r of config.resumes) {
+    // Shorter label so it fits the select; the stored value keeps the full name.
     const name = 'Tailored (based on ' + r.name + ')';
-    sel.append(el('option', { value: name }, name));
+    sel.append(el('option', { value: name }, 'Tailored: ' + r.name));
   }
 }
 
@@ -219,7 +246,7 @@ function analyzeText(text, from) {
 
 async function checkDuplicates() {
   const log = await LogStore.getLog();
-  const dups = LogStore.findDuplicates(log, { url: page.url, company: $('job-company').value, title: $('job-title').value })
+  const dups = LogStore.findDuplicates(log, { url: page.url, company: $('job-company').value, title: $('job-title').value, jobId: $('job-id').value })
     .filter((d) => d.id !== lastLoggedId);
   if (dups.length) {
     const d = dups[0];
@@ -275,14 +302,20 @@ async function onLog() {
   }
   const now = new Date();
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  // The file to re-download later: the chosen resume, or the base of a tailored one.
+  const used = $('resume-used').value;
+  const base = config.resumes.find((r) => used === r.name || used === 'Tailored (based on ' + r.name + ')');
   lastLoggedId = await LogStore.addEntry({
     company: $('job-company').value.trim(),
     title: $('job-title').value.trim(),
+    jobId: $('job-id').value.trim(),
     url: page.url || '',
     date,
-    resume: $('resume-used').value,
+    resume: used,
+    resumeFile: base ? base.filename : '',
     verdict: result.verdict.label,
-    score: result.top.score
+    score: result.top.score,
+    match: ResumeScoring.matchLevel(result.top.score, config)
   });
   confirmDuplicate = false;
   $('log-btn').textContent = 'Logged';
@@ -317,6 +350,7 @@ async function init() {
 
   $('job-title').value = guessTitle(page);
   $('job-company').value = guessCompany(page);
+  $('job-id').value = ResumeScoring.findJobId(page.pageText || page.selection, page.url);
 
   if (page.selection && page.selection.length >= MIN_SELECTION) {
     analyzeText(page.selection, 'selection');
@@ -340,6 +374,7 @@ async function init() {
   });
   $('job-title').addEventListener('change', () => { if (jobText) analyzeText(jobText); });
   $('job-company').addEventListener('change', checkDuplicates);
+  $('job-id').addEventListener('change', checkDuplicates);
   $('gaps-help').addEventListener('click', () => {
     const open = $('gaps-legend').hidden;
     $('gaps-legend').hidden = !open;

@@ -3,26 +3,41 @@
 <head>
   <meta charset="utf-8">
   <title>Application Log — Resume Matcher</title>
+  <link rel="icon" href="../icons/icon32.png">
   <link rel="stylesheet" href="log.css">
 </head>
 <body>
   <header>
     <h1>Application log</h1>
     <span id="count" class="muted"></span>
-    <span class="spacer"></span>
-    <input id="filter" type="search" placeholder="Filter…">
-    <button id="export">Export CSV</button>
-    <button id="clear" class="danger">Clear all</button>
   </header>
 
-  <table>
+  <div class="toolbar">
+    <input id="filter" type="search" placeholder="Filter by company, role, job ID or resume" aria-label="Filter applications">
+    <button id="export" class="link">Export CSV</button>
+    <button id="clear" class="link danger">Clear all</button>
+  </div>
+
+  <!-- Undo bar for remove / clear all. -->
+  <div id="undo-bar" class="undo-bar" hidden>
+    <span id="undo-msg"></span>
+    <button id="undo" class="link">Undo</button>
+  </div>
+
+  <div class="table-wrap">
+  <table id="table">
     <thead>
-      <tr><th>Date</th><th>Company</th><th>Title</th><th>Resume used</th><th>Verdict</th><th>Score</th><th></th></tr>
+      <tr>
+        <th>Date</th><th>Company</th><th>Role</th><th>Job ID</th><th>Resume sent</th><th>Match</th><th><span class="sr-only">Actions</span></th>
+      </tr>
     </thead>
     <tbody id="rows"></tbody>
   </table>
-  <p id="empty" class="muted" hidden>No applications logged yet. Use “Log this application” in the popup.</p>
+  </div>
+  <p id="empty" class="empty" hidden>No applications yet. Open a job posting, click the Resume Matcher icon, then click <b>Log it</b>.</p>
+  <p id="no-match" class="empty" hidden>No applications match that filter.</p>
 
+  <script src="../src/scoring.js"></script>
   <script src="../src/log-store.js"></script>
   <script src="log.js"></script>
 </body>

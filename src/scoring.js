@@ -364,7 +364,8 @@
 
     // 4. Citizenship / clearance / sponsorship.
     const clearance = /\b(?:security clearance|secret clearance|top secret|ts\/sci|active clearance|clearance (?:is )?required|obtain (?:and maintain )?(?:a |an )?(?:security |government )?clearance|public trust)\b/.exec(normText);
-    if (clearance) flags.push({ type: 'clearance', severity: 'flag', text: `Security clearance mentioned ("${clearance[0]}")` });
+    // Quote the matched phrase only when it says more than the label does.
+    if (clearance) flags.push({ type: 'clearance', severity: 'flag', text: clearance[0] === 'security clearance' ? 'Security clearance mentioned' : `Security clearance mentioned ("${clearance[0]}")` });
     const citizen = /\b(?:u\.?s\.? citizen(?:ship)?|united states citizen(?:ship)?|citizenship (?:is )?required|u\.?s\.? persons?|itar|export[\s-]controll?ed)\b/.exec(normText);
     if (citizen) {
       const sev = config.candidate.usCitizen ? 'plus' : 'flag';
@@ -465,5 +466,32 @@
       .replace('{jobText}', () => String(jobText || '').trim());
   }
 
-  return { analyze, buildClaudePrompt, _internal: { termRegex, countTerm, makeNormalizer, splitSections, parseYears } };
+  // "High" / "Medium" / "Low" match for a 0-100 score (cutoffs in config.thresholds.matchLevels).
+  function matchLevel(score, config) {
+    const L = (config.thresholds && config.thresholds.matchLevels) || { high: 70, medium: 45 };
+    return score >= L.high ? 'High' : score >= L.medium ? 'Medium' : 'Low';
+  }
+
+  // Job ID / requisition number. A labeled value in the posting text wins
+  // ("Job ID: R-12345", "Requisition #JR0099", "Job Identification\n121371");
+  // otherwise it's read from common job-site URL patterns. Returns '' if none.
+  const JOB_ID_LABEL = /\b(?:job\s*(?:id(?:entification)?|number|no\.?|#|code|req(?:uisition)?(?:\s*(?:id|#|number|no\.?))?)|req(?:uisition)?\s*(?:id|#|number|no\.?)|requisition|posting\s*(?:id|number|#)|reference\s*(?:id|number|#|code))\s*[:#.\-]?\s*\n?\s*#?\s*([A-Za-z]{0,6}[-_]?\d[\w-]{1,24})/i;
+  const JOB_ID_URL = [
+    /\/jobs\/view\/(\d{5,})/,                                             // LinkedIn
+    /[?&](?:currentJobId|gh_jid|jobId|job_id|jobid|reqId|requisitionId|jk)=([\w-]{3,})/i, // query params
+    /\/(?:job|jobs|requisitions?)\/(\d{4,})(?:[/?#]|$)/,                   // Oracle, Greenhouse, many ATSs
+    /_((?:JR|R|REQ)[-_]?\d{3,}|\d{5,})(?:[/?#-]|$)/i                       // Workday "..._R12345"
+  ];
+
+  function findJobId(text, url) {
+    const m = JOB_ID_LABEL.exec(String(text || ''));
+    if (m) return m[1].replace(/[-_.]+$/, '');
+    for (const re of JOB_ID_URL) {
+      const u = re.exec(String(url || ''));
+      if (u) return u[1];
+    }
+    return '';
+  }
+
+  return { analyze, buildClaudePrompt, matchLevel, findJobId, _internal: { termRegex, countTerm, makeNormalizer, splitSections, parseYears } };
 });

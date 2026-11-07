@@ -16,21 +16,24 @@ After editing `config.json` or any code, click the reload icon on the extension'
 
 ## Use
 
-1. Open a job posting and highlight the job description (or skip highlighting).
+1. Open a job posting and highlight the job description.
 2. Click the extension icon. A highlighted selection is analyzed right away; otherwise click
-   **Use whole page**.
-3. Check the title/company the popup guessed and fix them if needed. Changing the title
-   re-runs the analysis.
+   **Analyze whole page**, or **or paste text** for pages Chrome won't let extensions read
+   (PDFs, `chrome://` pages, the Web Store).
+3. Check the title, company and job ID the popup filled in. They look like plain text but
+   are editable; changing the title re-runs the analysis.
 4. Read the verdict:
    - **Use [resume]**: send that resume.
-   - **Tailor on Claude**: click **Copy prompt & open Claude**, then paste into the new chat.
-   - **Likely skip**: the reasons are listed under the verdict.
-5. Pick the resume you used and click **Log this application**. If the URL or
-   company + title is already in the log, you get a warning; click again to log anyway.
-6. **View log** opens the log page (filter, delete, clear, **Export CSV**).
+   - **Tailor on Claude**: click **Copy prompt and open Claude**, then paste into the new chat.
+   - **Likely skip**: the reason is shown under the verdict.
+5. Pick the resume you sent and click **Log it**. **Undo** removes it again. If the URL,
+   company + title, or company + job ID is already logged, the button asks **Log again?**.
+6. **View log** opens the log page: date, company, role (links to the posting), job ID,
+   resume sent (links to the PDF) and match level (High / Medium / Low). Filter with `/`,
+   remove rows or clear all (both undoable for 10 seconds), and **Export CSV**.
 
-Pages Chrome won't let extensions read (PDFs, `chrome://` pages, the Web Store) show a
-message. Paste the text into **Job text** at the bottom of the popup and click **Re-analyze**.
+To make the resume links work, copy your PDFs into `resumes/` (see `resumes/README.md`).
+They are ignored by git.
 
 ## How scoring works (`src/scoring.js`)
 
@@ -100,4 +103,6 @@ src/log-store.js     application log in chrome.storage.local, CSV export
 popup/               popup UI
 log/                 log page
 tests/               Node test runner, cases, fixtures
+icons/               extension icons (regenerate with `node tools/make-icons.js`)
+resumes/             your resume PDFs, linked from the log (git-ignored)
 ```

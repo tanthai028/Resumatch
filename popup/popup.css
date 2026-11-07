@@ -1,6 +1,6 @@
 /* "Highlighter" theme: white paper, black ink, and highlighter-marker
-   colors used sparingly (yellow = go, peach = tailor/learnable,
-   pink = skip/required). Thin rules separate sections instead of boxes.
+   colors used sparingly (green = go/high, yellow = tailor/medium/learnable,
+   pink = skip/low/required). Thin rules separate sections instead of boxes.
    All colors and spacing are tokens; spacing uses a 4px scale. */
 :root {
   --bg: #ffffff;
@@ -12,9 +12,11 @@
   --track: #eeeeee;
   --bar: #9a9a9a;
 
-  /* Highlighter markers (backgrounds behind black text). */
+  /* Highlighter markers (backgrounds behind black text). Three clearly
+     different hues: green = high match / go, yellow = medium / caution,
+     pink = low / stop. */
+  --mark-green: #a6eb8f;
   --mark-yellow: #ffe74c;
-  --mark-peach: #ffd2a8;
   --mark-pink: #ffc4cc;
 
   /* Small status squares and alert text. */
@@ -26,8 +28,9 @@
   --s2: 8px;
   --s3: 12px;
   --radius: 2px;
-  --fs-sm: 11px;
-  --fs: 12px;
+  /* 12px is the floor: smaller grey text was hard to read. */
+  --fs-sm: 12px;
+  --fs: 13px;
 }
 
 * { box-sizing: border-box; }
@@ -64,8 +67,11 @@ input[type="text"] { text-overflow: ellipsis; }
 input.inline { width: 100%; height: auto; padding: 1px 0; border: none; border-bottom: 1px dashed transparent; border-radius: 0; background: transparent; }
 input.inline:hover { border-bottom-color: var(--field); }
 input.inline:focus { outline: none; border-bottom: 1px solid var(--ink); }
-input.inline.title { font-size: 14px; font-weight: 600; }
+input.inline.title { font-size: 15px; font-weight: 600; }
 input.inline.company { color: var(--muted); }
+.id-label { flex: none; margin-left: var(--s2); font-size: var(--fs-sm); color: var(--muted); }
+/* Sizes to its content so "ID" sits right next to the number. */
+input.inline.job-id { width: auto; field-sizing: content; min-width: 4ch; max-width: 120px; flex: none; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 textarea { display: block; width: 100%; height: auto; padding: var(--s1) var(--s2); resize: vertical; font-size: var(--fs-sm); margin: var(--s1) 0; }
 
 button {
@@ -102,32 +108,44 @@ button.link:hover { background: var(--mark-yellow); }
 /* Verdict: the label is "highlighted" in the marker color for its type. */
 .verdict { margin-top: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--rule); }
 .verdict-label { display: inline; font: 400 20px/1.35 var(--display); padding: 0 var(--s1); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.verdict.use .verdict-label { background: var(--mark-yellow); }
-.verdict.tailor .verdict-label { background: var(--mark-peach); }
+.verdict.use .verdict-label { background: var(--mark-green); }
+.verdict.tailor .verdict-label { background: var(--mark-yellow); }
 .verdict.skip .verdict-label { background: var(--mark-pink); }
 .verdict-reason { margin-top: var(--s1); font-size: var(--fs-sm); color: var(--muted); word-break: break-word; }
 .verdict .primary { margin-top: var(--s2); }
 
 /* Score bars: one per row; the top resume's name gets the yellow mark. */
 .scores { list-style: none; margin: var(--s3) 0 0; padding: var(--s2) 0 0; border-top: 1px solid var(--rule); }
-.scores li { display: grid; grid-template-columns: 112px 1fr 24px; align-items: center; gap: var(--s2); line-height: 20px; color: var(--muted); }
+.scores li { display: grid; grid-template-columns: 124px 1fr 26px; align-items: center; gap: var(--s2); line-height: 20px; color: var(--muted); }
 .scores .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; justify-self: start; max-width: 100%; }
 .scores .bar { height: 4px; background: var(--track); }
 .scores .fill { height: 100%; background: var(--bar); }
 .scores li.top { color: var(--text); font-weight: 600; }
-.scores li.top .name { background: var(--mark-yellow); padding: 0 3px; }
+.scores li.top .name { padding: 0 3px; }
+/* The top resume's name is marked in its match-level color. */
+.scores li.top.high .name { background: var(--mark-green); }
+.scores li.top.medium .name { background: var(--mark-yellow); }
+.scores li.top.low .name { background: var(--mark-pink); }
 .scores li.top .fill { background: var(--ink); }
 .scores .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Keyword tags: square, outlined; gap severity uses marker colors. */
+/* Top-aligned so the label stays on the first line when chips wrap. */
 .kw-row { display: flex; gap: var(--s2); margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--rule); align-items: flex-start; }
 .kw-label { flex: none; font-size: var(--fs-sm); color: var(--muted); line-height: 20px; }
-button.kw-label { color: var(--muted); text-decoration: none; }
-button.kw-label sup { font-size: 9px; margin-left: 1px; }
+button.kw-label { display: inline-flex; align-items: center; gap: var(--s1); color: var(--muted); text-decoration: none; }
+/* Help mark: a small outlined circle, big enough to see and click. */
+button.kw-label .q { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid currentColor; border-radius: 50%; font-size: 10px; line-height: 1; }
+button.kw-label:hover .q, button.kw-label[aria-expanded="true"] .q { background: var(--ink); border-color: var(--ink); color: #fff; }
 .chips { display: flex; flex-wrap: wrap; gap: var(--s1); flex: 1; min-width: 0; }
+/* Gaps: one straight row, right-aligned with the score numbers above.
+   Chips that don't fit fold into "+N"; clicking it lets the row wrap. */
+#missing { flex-wrap: nowrap; justify-content: flex-end; overflow: hidden; }
+#missing.expanded { flex-wrap: wrap; }
+#missing .chip { flex: none; white-space: nowrap; }
 .chip { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--radius); font-size: var(--fs-sm); border: 1px solid var(--field); color: var(--text); background: var(--bg); }
 .chip.core { background: var(--mark-pink); border-color: transparent; font-weight: 600; }
-.chip.soft { background: var(--mark-peach); border-color: transparent; }
+.chip.soft { background: var(--mark-yellow); border-color: transparent; }
 .chip.mention { color: var(--muted); }
 button.chip.more { height: 20px; padding: 0 6px; font-size: var(--fs-sm); color: var(--muted); border-style: dashed; }
 .none { color: var(--muted); font-size: var(--fs-sm); line-height: 20px; }

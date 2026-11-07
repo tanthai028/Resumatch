@@ -2,7 +2,8 @@
  * log-store.js — application log kept in chrome.storage.local.
  * Used by both the popup ("Log this application") and the log page.
  *
- * Entry shape: { id, company, title, url, date, resume, verdict, score }
+ * Entry shape: { id, company, title, jobId, url, date, resume, resumeFile,
+ *                verdict, score, match }   (match = "High" | "Medium" | "Low")
  */
 (function (root) {
   'use strict';
@@ -46,17 +47,20 @@
 
   const clean = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
-  // Entries already logged with the same URL, or the same company + title.
-  function findDuplicates(log, { url, company, title }) {
+  // Entries already logged with the same URL, the same company + title,
+  // or the same company + job ID.
+  function findDuplicates(log, { url, company, title, jobId }) {
     const nu = url ? normalizeUrl(url) : '';
+    const same = (a, b) => clean(a) && clean(a) === clean(b);
     return log.filter((e) =>
       (nu && normalizeUrl(e.url) === nu) ||
-      (clean(company) && clean(title) && clean(e.company) === clean(company) && clean(e.title) === clean(title))
+      (same(company, e.company) && same(title, e.title)) ||
+      (same(company, e.company) && same(jobId, e.jobId))
     );
   }
 
   function toCSV(log) {
-    const cols = ['date', 'company', 'title', 'url', 'resume', 'verdict', 'score'];
+    const cols = ['date', 'company', 'title', 'jobId', 'url', 'resume', 'resumeFile', 'match', 'verdict'];
     const esc = (v) => {
       const s = v === undefined || v === null ? '' : String(v);
       return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
