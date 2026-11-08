@@ -30,7 +30,10 @@ function pageGrabber() {
     ogTitle: meta('meta[property="og:title"]'),
     siteName: meta('meta[property="og:site_name"]'),
     docTitle: document.title,
-    url: location.href
+    url: location.href,
+    // Visible fillable fields; many means this is an application form, not a posting.
+    formFields: [...document.querySelectorAll('input, select, textarea')].filter((el) =>
+      !/^(hidden|submit|button|reset|image|file|radio|checkbox|search|password)$/i.test(el.type) && el.getClientRects().length).length
   };
 }
 
@@ -334,6 +337,13 @@ async function onUndo() {
 // Autofill (Workday application pages)
 // ---------------------------------------------------------------------------
 
+// An application form: Workday's ".../apply/..." pages, or any page with
+// several fillable fields and nothing highlighted.
+const FORM_FIELDS = 4;
+function isApplicationForm(p) {
+  return isWorkdayApply(p.url) || ((p.formFields || 0) >= FORM_FIELDS && (p.selection || '').length < MIN_SELECTION);
+}
+
 // The application form itself: ".../job/.../apply/applyManually" on a Workday site.
 function isWorkdayApply(url) {
   try {
@@ -368,6 +378,13 @@ async function setUpAutofill(tab) {
     return;
   }
   $('af-run').addEventListener('click', () => onAutofill(tab, profile));
+}
+
+// "Analyze this page instead": back to the normal match screen.
+function leaveAutofill() {
+  $('autofill').hidden = true;
+  showScreen('empty');
+  checkDuplicates();
 }
 
 function afNote(text, leftList) {
@@ -439,7 +456,7 @@ async function init() {
   $('job-company').value = guessCompany(page);
   $('job-id').value = ResumeScoring.findJobId(page.pageText || page.selection, page.url);
 
-  if (readable && isWorkdayApply(page.url)) {
+  if (readable && isApplicationForm(page)) {
     // An application form, not a posting: offer autofill instead of a match.
     await setUpAutofill(tab);
   } else if (page.selection && page.selection.length >= MIN_SELECTION) {
@@ -475,6 +492,7 @@ async function init() {
   $('undo-log').addEventListener('click', onUndo);
   $('open-log').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') }));
   $('open-profile').addEventListener('click', openProfile);
+  $('af-analyze').addEventListener('click', leaveAutofill);
 }
 
 init().catch((e) => {

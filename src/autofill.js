@@ -215,7 +215,9 @@
       R(/veteran/, () => p.eeo.veteran),
       R(/disabilit/, () => p.eeo.disability),
       // Contact and address.
-      R(/middle name|preferred name|preferredname|suffix|prefix|title honorific/, () => ''),
+      // Preferred first name: same as your first name (often required).
+      R(/preferred first name|first name preferred|preferred name|preferredname/, () => p.first),
+      R(/middle name|suffix|prefix|title honorific/, () => ''),
       R(/\bfirst name|firstname|given name/, () => p.first),
       R(/\blast name|lastname|family name|surname/, () => p.last),
       R(/e ?mail/, () => p.email),
