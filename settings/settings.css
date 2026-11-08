@@ -1,0 +1,36 @@
+/* Profile form. Tokens, dark mode, header and link styles come from log/log.css. */
+body.settings { max-width: 760px; }
+.intro { margin: 12px 0 0; font-size: 13px; }
+.small { font-size: 13px; margin: 0 0 12px; }
+
+section { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--rule); }
+h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+.grid .wide { grid-column: 1 / -1; }
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+label.check { flex-direction: row; align-items: center; gap: 8px; align-self: end; padding-bottom: 6px; color: var(--text); }
+.settings input:not([type="checkbox"]), .settings textarea {
+  width: 100%; padding: 6px 8px; font: inherit; font-size: 14px; color: var(--text);
+  border: 1px solid var(--field); border-radius: 0; background: var(--bg);
+}
+.settings input:focus, .settings textarea:focus { outline: none; border-color: var(--ink); }
+.settings textarea { resize: vertical; }
+
+/* Repeatable jobs / schools: a left rule instead of a box. */
+.cards { display: flex; flex-direction: column; gap: 20px; }
+.card { padding-left: 14px; border-left: 2px solid var(--ink); }
+.card-actions { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; }
+.card:first-child .up { display: none; }
+
+.answers { display: flex; flex-direction: column; gap: 8px; }
+.answer { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; }
+.answer .remove-answer { font-size: 13px; }
+
+.row-links { display: flex; gap: 20px; }
+
+/* Placeholders are examples, so keep them clearly lighter than real values. */
+.settings ::placeholder { color: var(--muted); opacity: .55; }

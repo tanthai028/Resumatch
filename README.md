@@ -42,6 +42,21 @@ After editing `config.json` or any code, click the reload icon on the extension'
 To make the resume links work, copy your PDFs into `resumes/` (see `resumes/README.md`).
 They are ignored by git.
 
+## Autofill (Workday)
+
+1. Click **Profile** in the popup (or the extension's Options) and fill in your contact
+   details, work history, education, voluntary disclosures and other answers. It saves
+   as you type, in this browser only. **Download profile** makes a backup.
+2. On a Workday application page (`…myworkdayjobs.com/…/apply/…`), open the popup. It
+   shows **Autofill** instead of a match. Pick the resume to upload (it defaults to the
+   one you logged for this job), then click **Autofill**.
+3. It fills empty fields only, adds Work Experience / Education blocks as needed, and
+   lists any required fields still empty. It never clicks Next, Submit, or terms/consent
+   boxes. Check the page, click Next, and run Autofill again on each page.
+
+Questions it doesn't know: add them under **Other answers** (e.g. "salary" → "Open to
+discuss"). Workday sites vary, so if a field is missed, fill it by hand.
+
 ## How scoring works (`src/scoring.js`)
 
 - Job text is lowercased and synonyms are rewritten (`"Amazon Web Services"` → `aws`).
@@ -108,6 +123,9 @@ config.json          resumes, keywords, skills, synonyms, thresholds
 background.js        toolbar badge: count of applications due for a follow-up
 src/scoring.js       scoring, red flags, verdict (runs in browser and Node)
 src/log-store.js     application log in chrome.storage.local, CSV export
+src/profile-store.js autofill profile in chrome.storage.local
+src/autofill.js      form filler injected into Workday application pages
+settings/            profile page (Options)
 popup/               popup UI
 log/                 log page
 tests/               Node test runner, cases, fixtures

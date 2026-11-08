@@ -331,6 +331,93 @@ async function onUndo() {
 }
 
 // ---------------------------------------------------------------------------
+// Autofill (Workday application pages)
+// ---------------------------------------------------------------------------
+
+// The application form itself: ".../job/.../apply/applyManually" on a Workday site.
+function isWorkdayApply(url) {
+  try {
+    const u = new URL(url);
+    return /(^|\.)(myworkdayjobs|myworkdaysite)\.com$/.test(u.hostname) && /\/apply(\/|$)/.test(u.pathname);
+  } catch (e) { return false; }
+}
+
+// The log entry for this posting: its URL is the start of the apply URL.
+function loggedEntryFor(log, url) {
+  const base = LogStore.normalizeUrl(String(url).replace(/\/apply(\/.*)?$/, ''));
+  return log.find((e) => e.url && base.startsWith(LogStore.normalizeUrl(e.url)));
+}
+
+async function setUpAutofill(tab) {
+  showScreen('none');
+  $('autofill').hidden = false;
+  const sel = $('af-resume');
+  sel.append(el('option', { value: '' }, "Don't upload a resume"));
+  for (const r of config.resumes) sel.append(el('option', { value: r.filename }, r.name));
+
+  // Default to the resume you logged for this job; a tailored one you upload yourself.
+  const entry = loggedEntryFor(await LogStore.getLog(), page.url || tab.url);
+  if (entry && entry.resumeFile && !/^Tailored\b/.test(entry.resume || '')) sel.value = entry.resumeFile;
+  else if (entry && /^Tailored\b/.test(entry.resume || '')) afNote('You sent a tailored resume for this job, so upload that file yourself.');
+
+  const profile = await ProfileStore.getProfile();
+  if (!ProfileStore.isSetUp(profile)) {
+    $('af-run').textContent = 'Set up profile';
+    $('af-run').addEventListener('click', openProfile);
+    afNote('Add your name and email in your profile first.');
+    return;
+  }
+  $('af-run').addEventListener('click', () => onAutofill(tab, profile));
+}
+
+function afNote(text, leftList) {
+  const note = $('af-note');
+  note.replaceChildren(text);
+  if (leftList && leftList.length) {
+    note.append(el('div', { className: 'af-left' }, 'Still empty: ' + leftList.slice(0, 6).join(', ') + (leftList.length > 6 ? `, +${leftList.length - 6} more` : '') + '.'));
+  }
+  note.hidden = false;
+}
+
+function toBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+async function onAutofill(tab, profile) {
+  const btn = $('af-run');
+  btn.disabled = true;
+  btn.textContent = 'Filling…';
+  try {
+    let resume = null;
+    const file = $('af-resume').value;
+    if (file) {
+      const res = await fetch(chrome.runtime.getURL('resumes/' + file));
+      if (!res.ok) throw new Error(`${file} isn't in the resumes folder.`);
+      resume = { name: file, base64: toBase64(await res.arrayBuffer()) };
+    }
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['src/autofill.js'] });
+    const [out] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (p, r) => window.__resumeMatcherAutofill(p, r),
+      args: [profile, resume]
+    });
+    const r = out.result || { filled: [], left: [] };
+    const n = r.filled.length;
+    const up = r.uploaded === 'uploaded' ? ' Uploaded your resume.' : '';
+    afNote((n ? `Filled ${n} field${n === 1 ? '' : 's'}.` : 'Nothing new to fill on this page.') + up + (r.error ? ` Stopped early: ${r.error}` : ''), r.left);
+  } catch (e) {
+    afNote("Couldn't fill this page: " + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Autofill again';
+}
+
+const openProfile = () => chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') });
+
+// ---------------------------------------------------------------------------
 // Startup
 // ---------------------------------------------------------------------------
 
@@ -352,7 +439,10 @@ async function init() {
   $('job-company').value = guessCompany(page);
   $('job-id').value = ResumeScoring.findJobId(page.pageText || page.selection, page.url);
 
-  if (page.selection && page.selection.length >= MIN_SELECTION) {
+  if (readable && isWorkdayApply(page.url)) {
+    // An application form, not a posting: offer autofill instead of a match.
+    await setUpAutofill(tab);
+  } else if (page.selection && page.selection.length >= MIN_SELECTION) {
     analyzeText(page.selection, 'selection');
   } else if (!readable) {
     showScreen('paste');
@@ -384,6 +474,7 @@ async function init() {
   $('log-btn').addEventListener('click', onLog);
   $('undo-log').addEventListener('click', onUndo);
   $('open-log').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') }));
+  $('open-profile').addEventListener('click', openProfile);
 }
 
 init().catch((e) => {

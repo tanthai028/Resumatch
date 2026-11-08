@@ -194,6 +194,13 @@ button.chip.more { height: 20px; padding: 0 6px; font-size: var(--fs-sm); color:
 .log-note { margin-top: var(--s1); font-size: var(--fs-sm); color: var(--muted); }
 .log-note .link { margin-left: var(--s1); font-size: var(--fs-sm); }
 
+.top-links { display: flex; gap: var(--s3); }
+
+/* Autofill panel (Workday application pages). */
+.af-intro { margin: 0 0 var(--s2); font-size: var(--fs-sm); color: var(--muted); }
+.autofill select { padding: 0 var(--s1); }
+.af-left { color: var(--amber); }
+
 /* Footer: where the text came from, plus a switch. */
 .footer { margin-top: var(--s3); font-size: var(--fs-sm); color: var(--muted); }
 .footer .link { margin-left: var(--s1); font-size: var(--fs-sm); color: var(--muted); }

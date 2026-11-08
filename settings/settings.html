@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Profile — Resume Matcher</title>
+  <link rel="icon" href="../icons/icon32.png">
+  <!-- Shares the log page's theme (tokens, dark mode, links); settings.css adds the form. -->
+  <link rel="stylesheet" href="../log/log.css">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body class="settings">
+  <header>
+    <h1>Autofill profile</h1>
+    <span id="saved" class="muted" aria-live="polite"></span>
+  </header>
+  <p class="intro muted">Used to fill Workday applications. Saved in this browser only and never sent anywhere.
+    Changes save as you type. Autofill never clicks Next or Submit.</p>
+
+  <section>
+    <h2>Contact</h2>
+    <div class="grid">
+      <label>First name<input data-key="first" autocomplete="given-name"></label>
+      <label>Last name<input data-key="last" autocomplete="family-name"></label>
+      <label>Email<input data-key="email" type="email" autocomplete="email"></label>
+      <label>Phone<input data-key="phone" type="tel" autocomplete="tel" placeholder="e.g. 7275550123"></label>
+      <label>Phone type<input data-key="phoneType" list="phone-types"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Address</h2>
+    <div class="grid">
+      <label class="wide">Street address<input data-key="address1" autocomplete="address-line1"></label>
+      <label class="wide">Apt, suite (optional)<input data-key="address2" autocomplete="address-line2"></label>
+      <label>City<input data-key="city" autocomplete="address-level2"></label>
+      <label>State<input data-key="state" autocomplete="address-level1" placeholder="e.g. Florida"></label>
+      <label>ZIP<input data-key="zip" autocomplete="postal-code"></label>
+      <label>Country<input data-key="country" autocomplete="country-name"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Links</h2>
+    <div class="grid">
+      <label class="wide">LinkedIn<input data-key="linkedin" type="url" placeholder="https://www.linkedin.com/in/…"></label>
+      <label>GitHub<input data-key="github" type="url"></label>
+      <label>Website or portfolio<input data-key="website" type="url"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Work authorization</h2>
+    <div class="grid">
+      <label>Authorized to work in the U.S.?<input data-key="authorized" list="yes-no"></label>
+      <label>Need visa sponsorship?<input data-key="sponsorship" list="yes-no"></label>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Work experience</h2><button id="add-job" class="link">Add job</button></div>
+    <div id="jobs" class="cards"></div>
+    <p id="jobs-empty" class="muted small" hidden>No jobs yet. Most recent first works best.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Education</h2><button id="add-school" class="link">Add school</button></div>
+    <div id="schools" class="cards"></div>
+    <p id="schools-empty" class="muted small" hidden>No schools yet.</p>
+  </section>
+
+  <section>
+    <h2>Voluntary disclosures</h2>
+    <p class="muted small">Type the answer the way the forms word it, or pick a suggestion.
+      "Decline" picks the site's "I don't wish to answer" option. Leave blank to answer yourself.</p>
+    <div class="grid">
+      <label>Gender<input data-key="eeo.gender" list="eeo-gender"></label>
+      <label>Hispanic or Latino?<input data-key="eeo.hispanic" list="yes-no-decline"></label>
+      <label>Race / ethnicity<input data-key="eeo.ethnicity" list="eeo-ethnicity"></label>
+      <label>Veteran status<input data-key="eeo.veteran" list="eeo-veteran"></label>
+      <label>Disability<input data-key="eeo.disability" list="eeo-disability"></label>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Other answers</h2><button id="add-answer" class="link">Add answer</button></div>
+    <p class="muted small">When a question's label contains the words on the left, autofill answers with the right.</p>
+    <div id="answers" class="answers"></div>
+  </section>
+
+  <section>
+    <h2>Backup</h2>
+    <div class="row-links">
+      <button id="export" class="link">Download profile (JSON)</button>
+      <button id="import" class="link">Restore from file</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </div>
+  </section>
+
+  <datalist id="yes-no"><option value="Yes"><option value="No"></datalist>
+  <datalist id="yes-no-decline"><option value="Yes"><option value="No"><option value="Decline"></datalist>
+  <datalist id="phone-types"><option value="Mobile"><option value="Home"><option value="Work"></datalist>
+  <datalist id="eeo-gender"><option value="Male"><option value="Female"><option value="Decline"></datalist>
+  <datalist id="eeo-ethnicity">
+    <option value="Asian"><option value="Black or African American"><option value="White">
+    <option value="Hispanic or Latino"><option value="Native Hawaiian or Other Pacific Islander">
+    <option value="American Indian or Alaska Native"><option value="Two or More Races"><option value="Decline">
+  </datalist>
+  <datalist id="eeo-veteran"><option value="I am not a protected veteran"><option value="I identify as one or more of the classifications of protected veteran"><option value="Decline"></datalist>
+  <datalist id="eeo-disability"><option value="No, I do not have a disability"><option value="Yes, I have a disability"><option value="Decline"></datalist>
+
+  <template id="job-tpl">
+    <div class="card">
+      <div class="grid">
+        <label>Job title<input data-f="title"></label>
+        <label>Company<input data-f="company"></label>
+        <label>Location<input data-f="location" placeholder="e.g. Tampa, FL"></label>
+        <label class="check"><input type="checkbox" data-f="current"> I currently work here</label>
+        <label>From<input type="month" data-f="start"></label>
+        <label>To<input type="month" data-f="end"></label>
+        <label class="wide">Description<textarea data-f="description" rows="4"></textarea></label>
+      </div>
+      <div class="card-actions"><button class="link up">Move up</button><button class="link danger remove-card">Remove</button></div>
+    </div>
+  </template>
+
+  <template id="school-tpl">
+    <div class="card">
+      <div class="grid">
+        <label class="wide">School<input data-f="school"></label>
+        <label>Degree<input data-f="degree" placeholder="e.g. Bachelor's Degree"></label>
+        <label>Field of study<input data-f="field" placeholder="e.g. Computer Science"></label>
+        <label>From (year)<input data-f="start" inputmode="numeric" placeholder="e.g. 2020"></label>
+        <label>To (year)<input data-f="end" inputmode="numeric" placeholder="e.g. 2024"></label>
+        <label>GPA (optional)<input data-f="gpa"></label>
+      </div>
+      <div class="card-actions"><button class="link up">Move up</button><button class="link danger remove-card">Remove</button></div>
+    </div>
+  </template>
+
+  <script src="../src/profile-store.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -11,10 +11,24 @@
        title="" tooltips, so explanations expand on click instead. -->
   <header class="topbar">
     <h1>Resume Matcher</h1>
-    <button id="open-log" class="link">View log</button>
+    <span class="top-links">
+      <button id="open-profile" class="link">Profile</button>
+      <button id="open-log" class="link">View log</button>
+    </span>
   </header>
 
   <div id="notice" class="notice" hidden></div>
+
+  <!-- Workday application pages: fill the form from your profile. -->
+  <div id="autofill" class="autofill" hidden>
+    <p class="af-intro">Fills this page from your profile. Check it, then click Next yourself.</p>
+    <div class="row">
+      <label for="af-resume" class="log-label">Upload</label>
+      <select id="af-resume" class="grow"></select>
+      <button id="af-run" class="primary">Autofill</button>
+    </div>
+    <div id="af-note" class="log-note" hidden></div>
+  </div>
 
   <!-- Before any analysis: one instruction, one action, paste as a fallback. -->
   <div id="empty" class="empty">
@@ -82,6 +96,7 @@
 
   <script src="../src/scoring.js"></script>
   <script src="../src/log-store.js"></script>
+  <script src="../src/profile-store.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
