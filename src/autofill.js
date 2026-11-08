@@ -12,6 +12,12 @@
  *   are added with the section's "Add" button.
  * - Dropdowns (Workday listbox buttons, search prompts, <select>), radio
  *   groups and single-choice checkbox groups pick the closest option text.
+ * - Searchable dropdowns (Select2, Chosen, custom comboboxes) are filled
+ *   through their hidden <select> when it has the option, else by opening
+ *   the widget, typing in its search box and clicking the match.
+ * - Native month/date pickers get dates from the profile.
+ * - Filled fields get a green outline, required fields still empty a red
+ *   dashed one; each clears when you click into it, all after 20 seconds.
  * - It never clicks Next, Submit, or consent / terms checkboxes.
  *
  * Returns { filled: [labels], left: [required labels still empty], uploaded }.
@@ -39,10 +45,32 @@
   const visible = (el) => Boolean(el && el.isConnected && el.getClientRects().length);
   const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+  // Searchable dropdown libraries hide the real <select> and draw their own widget
+  // right after it. These map between the two.
+  const WIDGET = '.select2-container, .select2, .chosen-container, .selectize-control, .choices, .nice-select, .bootstrap-select, .ts-wrapper';
+  function widgetOf(select) {
+    const next = select.nextElementSibling;
+    if (next && next.matches(WIDGET)) return next;
+    const wrap = select.closest('.choices, .bootstrap-select');
+    return wrap && wrap !== select ? wrap : null;
+  }
+  function nativeSelectOf(el) {
+    if (el.tagName === 'SELECT') return null;
+    const widget = el.closest(WIDGET);
+    if (!widget) return null;
+    const prev = widget.previousElementSibling;
+    return prev && prev.tagName === 'SELECT' ? prev : widget.querySelector('select');
+  }
+  // The clickable part of a widget (Select2's role=combobox span, Chosen's link...).
+  const comboIn = (widget) => widget.querySelector('[role="combobox"], .select2-selection, .chosen-single, .selectize-input, .choices__inner, .dropdown-toggle') || widget;
+
   // Every piece of text that describes a control, joined.
   function labelOf(el) {
     const parts = [];
     const add = (s) => { if (s) parts.push(s); };
+    // A custom dropdown built on a hidden <select> is described by that select's label.
+    const native = nativeSelectOf(el);
+    if (native) add(labelOf(native));
     add(el.getAttribute('aria-label'));
     const ids = el.getAttribute('aria-labelledby');
     if (ids) ids.split(/\s+/).forEach((id) => add(textOf(document.getElementById(id))));
@@ -110,14 +138,22 @@
     el.blur();
   }
 
+  const OPTION = '[role="option"], [role="treeitem"], .select2-results__option, .chosen-results li.active-result, .selectize-dropdown .option, .choices__list--dropdown .choices__item--selectable';
   const visibleOptions = () => {
-    const o = [...document.querySelectorAll('[role="option"]')].filter(visible);
+    const o = [...document.querySelectorAll(OPTION)].filter((x) => visible(x) && x.getAttribute('aria-disabled') !== 'true' && !/loading|message|no results|searching/i.test(x.className + ' ' + textOf(x).slice(0, 20)));
     return o.length ? o : null;
   };
+  // "Select One", "Select an option", "-- Please select --", "Choose...": a dropdown with nothing picked.
+  const isPlaceholder = (text) => /^(please )?(select|choose|pick)( (one|an option|a value|an item|from the list))?$|^$/.test(norm(text));
+  // Press like a real mouse; some widgets (Select2) open on mousedown, not click.
+  function press(el) {
+    for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window, button: 0 }));
+    el.click();
+  }
   const closePopup = () => document.activeElement && document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
 
   // Workday dropdown: a button that opens a listbox of [role=option].
-  const listboxEmpty = (btn) => /^(select one|select|choose one|)$/.test(norm(textOf(btn)));
+  const listboxEmpty = (btn) => isPlaceholder(textOf(btn));
   async function chooseListbox(btn, answer) {
     btn.click();
     const options = await waitFor(visibleOptions, 2000);
@@ -155,13 +191,39 @@
     return promptHasValue(input);
   }
 
+  const selectEmpty = (select) => !select.value || select.selectedIndex < 0 || isPlaceholder(select.options[select.selectedIndex].textContent);
   function chooseSelect(select, answer) {
-    const i = bestOption([...select.options].map((o) => o.textContent), answer);
+    const opts = [...select.options];
+    const i = bestOption(opts.map((o) => (isPlaceholder(o.textContent) ? '' : o.textContent)), answer);
     if (i < 0) return false;
-    select.value = select.options[i].value;
-    select.dispatchEvent(new Event('change', { bubbles: true }));
+    select.value = opts[i].value;
+    for (const type of ['input', 'change', 'chosen:updated']) select.dispatchEvent(new Event(type, { bubbles: true }));
     return true;
   }
+
+  // Custom dropdown: open it, type into its search box if it has one, click the match.
+  async function chooseCombo(el, answer) {
+    press(el);
+    await sleep(200);
+    const active = document.activeElement;
+    const search = [...document.querySelectorAll('.select2-search__field, .chosen-search input, .selectize-input input, .choices__input--cloned, [role="searchbox"], input[aria-autocomplete="list"]')]
+      .find((x) => visible(x) && x !== el) || (active && active.tagName === 'INPUT' && active !== el ? active : null);
+    if (search) {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(search, answer);
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+      search.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true }));
+    }
+    // Long lists (schools) load as you type, so wait for a matching option.
+    const matching = () => { const o = visibleOptions(); return o && bestOption(o.map(textOf), answer) >= 0 ? o : null; };
+    const options = await waitFor(matching, search ? 3500 : 2000);
+    if (!options) { closePopup(); await sleep(150); return false; }
+    const opt = options[bestOption(options.map(textOf), answer)];
+    opt.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    press(opt);
+    await sleep(300);
+    return true;
+  }
+  const comboEmpty = (el) => { const native = nativeSelectOf(el); return native ? selectEmpty(native) : isPlaceholder(textOf(el)); };
 
   // --- Finding controls -------------------------------------------------------------
 
@@ -172,10 +234,17 @@
   };
 
   // Text inputs, textareas, selects, Workday listbox buttons and prompts.
+  // Hidden <select>s count when a dropdown widget stands in for them.
+  // Custom comboboxes count unless a <select> backs them (the select is filled instead).
+  const isCombo = (el) => !/^(INPUT|SELECT|BUTTON)$/.test(el.tagName) && el.getAttribute('role') === 'combobox';
   function controls(root) {
-    return [...root.querySelectorAll('input, textarea, select, button[aria-haspopup="listbox"]')].filter((el) => {
-      if (!visible(el) || el.disabled) return false;
+    return [...root.querySelectorAll('input, textarea, select, button[aria-haspopup="listbox"], [role="combobox"]')].filter((el) => {
+      if (el.disabled) return false;
+      if (el.tagName === 'SELECT') return visible(el) || Boolean(widgetOf(el) && visible(widgetOf(el)));
+      if (!visible(el)) return false;
+      if (isCombo(el)) return !nativeSelectOf(el);
       if (el.tagName !== 'INPUT') return true;
+      if (el.closest(WIDGET)) return false; // a widget's own search box
       return !/^(hidden|submit|button|reset|image|file|radio|checkbox)$/i.test(el.type);
     });
   }
@@ -245,7 +314,7 @@
   ];
   const schoolRules = [
     R(/school|university|institution|college/, (s) => s.school),
-    R(/degree/, (s) => s.degree),
+    R(/degree|education level|level of education|highest education/, (s) => s.degree),
     R(/field of study|fieldofstudy|major|discipline/, (s) => s.field),
     R(/\bgpa\b|overall result|grade average/, (s) => s.gpa)
   ];
@@ -256,8 +325,16 @@
   async function fill(el, value) {
     if (value === undefined || value === null || value === '') return false;
     if (el.tagName === 'BUTTON') return listboxEmpty(el) && chooseListbox(el, value);
-    if (el.tagName === 'SELECT') return !el.value && chooseSelect(el, value);
+    if (el.tagName === 'SELECT') {
+      if (!selectEmpty(el)) return false;
+      if (chooseSelect(el, value)) return true;
+      // The option may not be loaded yet (schools): search through the widget.
+      const widget = widgetOf(el);
+      return Boolean(widget) && chooseCombo(comboIn(widget), value);
+    }
+    if (isCombo(el)) return comboEmpty(el) && chooseCombo(el, value);
     if (isPrompt(el)) return !promptHasValue(el) && choosePrompt(el, value);
+    if (/^(month|date)$/.test(el.type)) return false; // dates are handled per block
     if (el.value) return false; // never overwrite
     setValue(el, String(value));
     return true;
@@ -297,7 +374,7 @@
 
   // The "Add" / "Add Another" button of a section whose heading contains `title`.
   function addButtonFor(title) {
-    return [...document.querySelectorAll('button')].filter(visible).find((btn) => {
+    return [...document.querySelectorAll('button, a, [role="button"]')].filter(visible).find((btn) => {
       const words = norm(textOf(btn) + ' ' + (btn.getAttribute('aria-label') || ''));
       if (!/^add( another)?\b/.test(words)) return false;
       if (words.includes(title)) return true;
@@ -330,15 +407,25 @@
       const current = [...block.querySelectorAll('input[type="checkbox"]')].find((c) => /currently|current/.test(norm(labelOf(c))));
       if (current) {
         claimed.add(current);
-        if (Boolean(item.current) !== current.checked) { current.click(); await sleep(250); report.filled.push('Currently work here'); }
+        if (Boolean(item.current) !== current.checked) { current.click(); await sleep(250); mark(current.closest('label') || current, 'filled'); report.filled.push('Currently work here'); }
       }
       // Dates: group the month/year boxes by their field (From / To).
       const boxes = controls(block).filter(dateKind);
       boxes.forEach((b) => claimed.add(b));
       const startBoxes = boxes.filter((b) => /start|from|first year/.test(norm(labelOf(b))));
       const endBoxes = boxes.filter((b) => !startBoxes.includes(b) && /end|\bto\b|last year/.test(norm(labelOf(b))));
-      if (await fillDate(startBoxes, item.start)) report.filled.push(`${title} ${i + 1} start date`);
-      if (!item.current && await fillDate(endBoxes, item.end)) report.filled.push(`${title} ${i + 1} end date`);
+      if (await fillDate(startBoxes, item.start)) { startBoxes.forEach((b) => b.value && mark(b, 'filled')); report.filled.push(`${title} ${i + 1} start date`); }
+      if (!item.current && await fillDate(endBoxes, item.end)) { endBoxes.forEach((b) => b.value && mark(b, 'filled')); report.filled.push(`${title} ${i + 1} end date`); }
+      // Native month / date pickers ("Start Date" with a calendar icon). Only
+      // values with a month (jobs) are used; school years alone would mean guessing.
+      for (const picker of controls(block).filter((x) => x.tagName === 'INPUT' && /^(month|date)$/.test(x.type))) {
+        claimed.add(picker);
+        const key = norm(labelOf(picker));
+        const v = /start|from|began|first/.test(key) ? item.start : (/end|\bto\b|finish|last|graduat/.test(key) && !item.current ? item.end : '');
+        if (!/^\d{4}-\d{2}$/.test(v || '') || picker.value) continue;
+        setValue(picker, picker.type === 'date' ? v + '-01' : v);
+        if (picker.value) { mark(picker, 'filled'); report.filled.push(`${shortLabel(picker)} (${title} ${i + 1})`); }
+      }
       // Everything else in the block.
       for (const el of controls(block)) {
         if (claimed.has(el) || dateKind(el)) continue;
@@ -346,7 +433,7 @@
         const rule = rules.find((r) => r.re.test(key));
         if (!rule) continue;
         claimed.add(el);
-        if (await fill(el, rule.get(item))) report.filled.push(`${shortLabel(el)} (${title} ${i + 1})`);
+        if (await fill(el, rule.get(item))) { mark(el, 'filled'); report.filled.push(`${shortLabel(el)} (${title} ${i + 1})`); }
       }
     }
   }
@@ -361,20 +448,20 @@
       const key = norm(labelOf(el));
       // Signature-style "Name" and "Today's date" on self-identification forms.
       if (/^(your |full )?name$/.test(norm(shortLabel(el)))) {
-        if (await fill(el, fullName)) report.filled.push(shortLabel(el));
+        if (await fill(el, fullName)) { mark(el, 'filled'); report.filled.push(shortLabel(el)); }
         continue;
       }
       if (dateKind(el)) {
         if (/today|signed|date signed/.test(key)) {
           const t = new Date();
           const v = { month: String(t.getMonth() + 1).padStart(2, '0'), day: String(t.getDate()).padStart(2, '0'), year: String(t.getFullYear()) }[dateKind(el)];
-          if (!el.value) { setValue(el, v); report.filled.push("Today's date"); }
+          if (!el.value) { setValue(el, v); mark(el, 'filled'); report.filled.push("Today's date"); }
         }
         continue;
       }
       const rule = rules.find((r) => r.re.test(key));
       if (!rule) continue;
-      if (await fill(el, rule.get())) report.filled.push(shortLabel(el));
+      if (await fill(el, rule.get())) { mark(el, 'filled'); report.filled.push(shortLabel(el)); }
     }
 
     // Yes/No questions and single-choice checkbox groups.
@@ -389,8 +476,38 @@
       if (i < 0) continue;
       g.inputs[i].click();
       await sleep(200);
+      mark(g.el, 'filled');
       report.filled.push((g.question.split(' | ')[0] || 'Question').slice(0, 40));
     }
+  }
+
+  // --- Highlighting -------------------------------------------------------------------------------------
+  // Green outline = filled by autofill; red dashed = required and still empty.
+  // A mark clears when you click into that field; all clear after 20 seconds.
+
+  const MARK = 'data-resume-matcher';
+  function ensureMarkStyle() {
+    if (document.getElementById('resume-matcher-marks')) return;
+    const style = document.createElement('style');
+    style.id = 'resume-matcher-marks';
+    style.textContent = `
+      [${MARK}="filled"] { outline: 2px solid #2da44e !important; outline-offset: 2px !important; box-shadow: 0 0 0 5px rgba(166, 235, 143, .55) !important; }
+      [${MARK}="empty"] { outline: 2px dashed #d92d20 !important; outline-offset: 2px !important; box-shadow: 0 0 0 5px rgba(255, 196, 204, .6) !important; }`;
+    document.head.append(style);
+  }
+  // Mark what you see: a hidden <select>'s widget, a radio group's box.
+  function mark(el, kind) {
+    const target = el.tagName === 'SELECT' ? widgetOf(el) || el : el;
+    if (!target || (kind === 'empty' && target.getAttribute(MARK) === 'filled')) return;
+    ensureMarkStyle();
+    target.setAttribute(MARK, kind);
+    const clear = () => target.removeAttribute(MARK);
+    target.addEventListener('focusin', clear, { once: true });
+    target.addEventListener('mousedown', clear, { once: true });
+  }
+  function clearMarksLater() {
+    clearTimeout(window.__resumeMatcherMarkTimer);
+    window.__resumeMatcherMarkTimer = setTimeout(() => document.querySelectorAll(`[${MARK}]`).forEach((n) => n.removeAttribute(MARK)), 20000);
   }
 
   // --- Resume upload ---------------------------------------------------------------------------------
@@ -414,10 +531,15 @@
 
   function leftovers() {
     const required = (el) => el.getAttribute('aria-required') === 'true' || el.required || /\*/.test(labelOf(el).split(' | ')[0] || '');
-    const empty = (el) => (el.tagName === 'BUTTON' ? listboxEmpty(el) : isPrompt(el) ? !promptHasValue(el) : !el.value);
-    const left = controls(document).filter((el) => required(el) && empty(el)).map(shortLabel);
+    const empty = (el) => (el.tagName === 'BUTTON' ? listboxEmpty(el) : el.tagName === 'SELECT' ? selectEmpty(el) : isCombo(el) ? comboEmpty(el) : isPrompt(el) ? !promptHasValue(el) : !el.value);
+    const missing = controls(document).filter((el) => required(el) && empty(el));
+    missing.forEach((el) => mark(el, 'empty'));
+    const left = missing.map(shortLabel);
     choiceGroups(document).forEach((g) => {
-      if (!g.inputs.some((i) => i.checked) && /\*|required/i.test(g.question)) left.push(g.question.split(' | ')[0].replace(/\*/g, '').trim().slice(0, 40));
+      if (!g.inputs.some((i) => i.checked) && /\*|required/i.test(g.question)) {
+        mark(g.el, 'empty');
+        left.push(g.question.split(' | ')[0].replace(/\*/g, '').trim().slice(0, 40));
+      }
     });
     return [...new Set(left.filter(Boolean))];
   }
@@ -438,6 +560,7 @@
       report.error = e.message;
     }
     report.left = leftovers();
+    clearMarksLater();
     return report;
   };
 })();

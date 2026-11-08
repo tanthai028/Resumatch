@@ -51,7 +51,10 @@ They are ignored by git.
    shows **Autofill** instead of a match. Pick the resume to upload (it defaults to the
    one you logged for this job), then click **Autofill**.
 3. It fills empty fields only, adds Work Experience / Education blocks as needed, and
-   lists any required fields still empty. It never clicks Next, Submit, or terms/consent
+   lists any required fields still empty. On the page, filled fields get a green
+   outline and required empty ones a red dashed outline (they clear when you click a
+   field, or after 20 seconds). Searchable dropdowns (school lists) and month/date
+   pickers are supported. It never clicks Next, Submit, or terms/consent
    boxes. Check the page, click Next, and run Autofill again on each page.
 
 Questions it doesn't know: add them under **Other answers** (e.g. "salary" → "Open to
