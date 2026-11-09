@@ -1,8 +1,13 @@
-# resumatch — Resume Matcher Chrome extension
+# Resumatch
 
-Picks which of 4 resumes to send for a job posting, flags dealbreakers, and tells you
+A Chrome extension that picks which of 4 resumes to send for a job posting, flags dealbreakers, and tells you
 when none fit well enough so you should get a tailored version from Claude.
 Manifest V3, plain JavaScript, no build step, no external API calls.
+
+<p>
+  <img src="docs/resumatch-popup-dark.webp" alt="Resumatch popup for a sample posting: &quot;Use Software&quot; with a high match, and scores for all four résumés" width="300">
+  <img src="docs/resumatch-popup.webp" alt="The same popup in light mode" width="300">
+</p>
 
 ## Install
 
